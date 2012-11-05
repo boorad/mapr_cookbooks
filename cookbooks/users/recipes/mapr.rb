@@ -1,10 +1,10 @@
 group "mapr" do
-  gid 500
+  gid node['mapr']['gid']
 end
 
 user "mapr" do
-  uid 500
-  gid 500
+  uid node['mapr']['uid']
+  gid node['mapr']['gid']
   shell "/bin/bash"
   home "/home/mapr"
 end
