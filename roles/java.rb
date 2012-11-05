@@ -4,3 +4,10 @@ run_list(
   "role[base]",
   "recipe[java::oracle]"
 )
+default_attributes(
+  :java => {
+    :oracle => {
+      "accept_oracle_download_terms" => true
+    }
+  }
+)
