@@ -5,7 +5,9 @@ run_list(
   "recipe[ntp]",
   "recipe[hostname]",
   "recipe[users::mapr]",
-  "recipe[mapr::prereqs]"
+  "recipe[mapr::dns]",
+  "recipe[mapr::ulimit]",
+  "recipe[mapr::ssh]"
 )
 default_attributes(
   "ntp" => {

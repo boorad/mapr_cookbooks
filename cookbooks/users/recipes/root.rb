@@ -1,5 +1,5 @@
-cookbook_file "/root/.bash_profile" do
-  source "bash_profile"
+cookbook_file "/root/.bashrc" do
+  source "bashrc"
   mode 0600
   owner "root"
   group "root"
