@@ -1,2 +1,4 @@
-default['mapr']['gid'] = 1000 # mapr group id (gid)
-default['mapr']['uid'] = 1000 # mapr user id  (uid)
+default[:mapr][:uid] = 2222
+default[:mapr][:gid] = 2222
+default[:mapr][:user] = "mapr"
+default[:mapr][:group] = "mapr"

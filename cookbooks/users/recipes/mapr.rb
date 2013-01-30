@@ -1,23 +1,23 @@
-group "mapr" do
+group node['mapr']['group'] do
   gid node['mapr']['gid']
 end
 
-user "mapr" do
+user node['mapr']['user'] do
   uid node['mapr']['uid']
   gid node['mapr']['gid']
   shell "/bin/bash"
-  home "/home/mapr"
+  home "/home/#{node['mapr']['user']}"
 end
 
-directory "/home/mapr" do
-  owner "mapr"
-  group "mapr"
+directory "/home/#{node['mapr']['user']}" do
+  owner node['mapr']['user']
+  group node['mapr']['group']
   mode 0700
 end
 
-cookbook_file "/home/mapr/.bash_profile" do
-  source "bash_profile"
+cookbook_file "/home/#{node['mapr']['user']}/.bashrc" do
+  source "bashrc"
   mode 0600
-  owner "mapr"
-  group "mapr"
+  owner node['mapr']['user']
+  group node['mapr']['group']
 end
