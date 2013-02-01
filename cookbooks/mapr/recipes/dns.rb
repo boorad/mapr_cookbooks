@@ -7,14 +7,10 @@
 
 # nodes in cluster
 cluster = data_bag_item("cluster","cluster")
+
 nodes = cluster['nodes']
+
 nodes.each do |n|
-
-  log "node: #{n}"
-
-  hostsfile_entry n['ip'] do
-    action :remove
-  end
 
   hostsfile_entry n['ip'] do
     hostname n['host']

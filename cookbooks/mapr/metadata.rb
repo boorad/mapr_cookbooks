@@ -11,3 +11,5 @@ end
 
 depends 'hostfile'
 depends 'hostname'
+depends 'apt'
+depends 'yum'

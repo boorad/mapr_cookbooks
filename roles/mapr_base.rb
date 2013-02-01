@@ -4,12 +4,11 @@ run_list(
   "role[java]",
   "recipe[ntp]",
   "recipe[hostname]",
-#  "recipe[chef-solo-search]",
-#  "recipe[hosts-awareness]",
   "recipe[users::mapr]",
   "recipe[mapr::dns]",
   "recipe[mapr::ulimit]",
-  "recipe[mapr::ssh]"
+  "recipe[mapr::ssh]",
+  "recipe[mapr::repos]"
 )
 default_attributes(
 
