@@ -26,7 +26,7 @@
 
 require 'chef/util/file_edit'
 
-fqdn = node[:set_fqdn]
+fqdn = node[:fqdn]
 if fqdn
   fqdn =~ /^([^.]+)/
   hostname = $1
@@ -62,7 +62,7 @@ if fqdn
 
   ohai "reload" if changed
 else
-  log "Please set the set_fqdn attribute to desired hostname" do
+  log "Please set the fqdn attribute to desired hostname" do
     level :warn
   end
 end

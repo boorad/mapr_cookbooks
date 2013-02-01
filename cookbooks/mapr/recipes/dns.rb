@@ -5,16 +5,21 @@
 # Copyright 2013, MapR Technologies
 #
 
-hostsfile_entry '127.0.0.1' do
-  action :remove
-end
+# nodes in cluster
+cluster = data_bag_item("cluster","cluster")
+nodes = cluster['nodes']
+nodes.each do |n|
 
-hostsfile_entry '127.0.1.1' do
-  action :remove
-end
+  log "node: #{n}"
 
-hostsfile_entry '127.0.0.1' do
-  hostname node[:set_fqdn]
-  aliases ["localhost", "localhost.localdomain"]
-  action :create
+  hostsfile_entry n['ip'] do
+    action :remove
+  end
+
+  hostsfile_entry n['ip'] do
+    hostname n['host']
+    aliases [n['fqdn']]
+    action :create
+  end
+
 end
