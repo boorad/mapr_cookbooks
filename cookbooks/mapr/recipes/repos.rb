@@ -31,7 +31,7 @@ if platform?("ubuntu")
 
   apt_repository "mapr_ecosystem" do
     uri "#{node['mapr']['repo_url']}/ecosystem/#{node['platform']}"
-    components ["binary"]
+    components ["binary/"]
   end
 
 end

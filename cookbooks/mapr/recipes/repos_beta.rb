@@ -8,7 +8,7 @@
 if platform?("redhat", "centos")
 
   yum_repository "mapr_core" do
-    uri "yum.qa.lab/mapr-beta"
+    uri "http://yum.qa.lab/mapr-beta"
   end
 
 end
@@ -16,7 +16,7 @@ end
 if platform?("ubuntu")
 
   apt_repository "mapr_core" do
-    uri "apt.qa.lab/mapr-beta"
+    uri "http://apt.qa.lab/mapr-beta"
   end
 
 end
