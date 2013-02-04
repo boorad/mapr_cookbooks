@@ -4,6 +4,7 @@ This is not ready for use, bunch of work to do yet.
 1. Change all attributes to proper values
   1. path/to/attrib files
 1. Generate SSH keys and place in cookbooks/mapr/files/default/id_rsa* files
+1. Choose roles to add to runlist of each server
 
 
 

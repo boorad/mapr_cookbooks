@@ -23,15 +23,19 @@ end
 
 if platform?("ubuntu")
 
+  include_recipe "apt"
+
   apt_repository "mapr_core" do
     uri "#{node['mapr']['repo_url']}/#{version}/#{node['platform']}"
     distribution "mapr"
     components ["optional"]
+    notifies :run, resources(:execute => "apt-get update"), :immediately
   end
 
   apt_repository "mapr_ecosystem" do
     uri "#{node['mapr']['repo_url']}/ecosystem/#{node['platform']}"
     components ["binary/"]
+    notifies :run, resources(:execute => "apt-get update"), :immediately
   end
 
 end

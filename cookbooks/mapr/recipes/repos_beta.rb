@@ -17,6 +17,7 @@ if platform?("ubuntu")
 
   apt_repository "mapr_core" do
     uri "http://apt.qa.lab/mapr-beta"
+    notifies :run, resources(:execute => "apt-get update"), :immediately
   end
 
 end
