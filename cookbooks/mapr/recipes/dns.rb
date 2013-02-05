@@ -5,6 +5,12 @@
 # Copyright 2013, MapR Technologies
 #
 
+# present on Vagrant box
+hostsfile_entry '127.0.1.1' do
+  action :remove
+end
+
+
 # nodes in cluster
 cluster = data_bag_item("cluster","cluster")
 
