@@ -1,0 +1,8 @@
+source :rubygems
+
+gem 'chef'
+gem 'ruby-wmi'
+gem 'test-unit'
+if(RUBY_PLATFORM.include?('windows'))
+  gem 'win32-service'
+end

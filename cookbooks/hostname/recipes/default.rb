@@ -26,8 +26,11 @@
 
 require 'chef/util/file_edit'
 
-fqdn = node[:fqdn]
+fqdn = node[:mapr][:fqdn]
 if fqdn
+  log "fqdn"
+  log fqdn
+
   fqdn =~ /^([^.]+)/
   hostname = $1
   changed = false
@@ -37,7 +40,7 @@ if fqdn
     mode "0644"
   end
 
-  if node[:hostname] != hostname
+  if node[:fqdn] != hostname
     execute "hostname #{hostname}"
     changed=true
   end
@@ -62,7 +65,7 @@ if fqdn
 
   ohai "reload" if changed
 else
-  log "Please set the fqdn attribute to desired hostname" do
+  log "Please set the node[:mapr][:fqdn] attribute to desired hostname" do
     level :warn
   end
 end

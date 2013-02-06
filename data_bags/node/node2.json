@@ -1,0 +1,25 @@
+{
+    "id" : "node2",
+    "name" : "node2",
+    "chef_environment" : "_default",
+    "json_class": "Chef::Node",
+    "automatic": {},
+    "normal": {},
+    "chef_type": "node",
+    "default" : {
+        "mapr" : {
+            "host" : "node2",
+            "fqdn" : "node2.cluster.com",
+            "ip" : "192.168.33.12"
+        }
+    },
+    "override" : {},
+    "run_list" : [
+        "role[mapr_beta]",
+        "role[mapr_tasktracker]",
+        "role[mapr_fileserver]",
+        "role[mapr_zookeeper]",
+        "role[mapr_webserver]",
+        "role[mapr_configure]"
+    ]
+}

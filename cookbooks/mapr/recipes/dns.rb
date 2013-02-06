@@ -12,15 +12,13 @@ end
 
 
 # nodes in cluster
-cluster = data_bag_item("cluster","cluster")
-
-nodes = cluster['nodes']
+nodes = search(:node, "*:*")
 
 nodes.each do |n|
 
-  hostsfile_entry n['ip'] do
-    hostname n['host']
-    aliases [n['fqdn']]
+  hostsfile_entry n[:mapr][:ip] do
+    hostname n[:mapr][:host]
+    aliases [n[:mapr][:fqdn]]
     action :create
   end
 

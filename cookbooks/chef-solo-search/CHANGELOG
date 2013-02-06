@@ -1,0 +1,13 @@
+==========================
+chef-solo-search Changelog
+==========================
+
+Version 0.4.0, UNRELEASED
+----------------------------
+* Added support for 'chef_environment:_default' to queries.
+
+Version 0.3.0, July 27, 2001
+----------------------------
+First release of chef-solo-search as a self-contained project.
+Search functionality has been added to the original concept and the search
+extension as well as the data bags extension are shipped in libraries/
