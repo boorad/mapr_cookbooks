@@ -28,8 +28,6 @@ require 'chef/util/file_edit'
 
 fqdn = node[:mapr][:fqdn]
 if fqdn
-  log "fqdn"
-  log fqdn
 
   fqdn =~ /^([^.]+)/
   hostname = $1
