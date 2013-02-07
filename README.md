@@ -19,6 +19,7 @@ If you want to try, even in this early stage:
 1. Configure your servers (or virtual machines) to run chef-client (or chef-solo) and boot them up.
 
 These steps are still manual, but are in the TODO list
+
 1. Before starting services, issue ```sudo passwd mapr```
 1. Start Zookeepers on all nodes ```sudo /etc/init.d/mapr-zookeeper start```
 1. Start Warden on all nodes ```sudo /etc/init.d/mapr-warden start```
@@ -26,6 +27,7 @@ These steps are still manual, but are in the TODO list
 1. Hit https://<webserver-node-hostname>:8443/ and get on with Hadooping
 
 TODO:
+
 1. Test on CentOS 6.3 next
 1. Move users cookbook into mapr cookbook, to consolidate attributes
 1. Generate SSH keys and such with the rake task
