@@ -1,0 +1,82 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant::Config.run do |config|
+
+  config.vm.define :u1 do |u1_config|
+    u1_config.vm.box = "ubuntu_12.04.1"
+    u1_config.vm.network :hostonly, "192.168.33.11"
+    u1_config.vm.provision :chef_solo do |chef|
+      chef.cookbooks_path = "cookbooks"
+      chef.roles_path = "roles"
+      chef.data_bags_path = "data_bags"
+      chef.add_role "mapr_beta"
+      chef.add_role "mapr_tasktracker"
+      chef.add_role "mapr_fileserver"
+      chef.add_role "mapr_cldb"
+      chef.add_role "mapr_zookeeper"
+      chef.add_role "mapr_nfs"
+      chef.add_role "mapr_configure"
+
+      # # You may also specify custom JSON attributes:
+      chef.json = {
+        :mapr => {
+          :hostname => "node1",
+          :fqdn => "node1.cluster.com",
+          :ip => "192.168.33.11"
+        }
+      }
+    end
+  end
+
+  config.vm.define :u2 do |u2_config|
+    u2_config.vm.box = "ubuntu_12.04.1"
+    u2_config.vm.network :hostonly, "192.168.33.12"
+    u2_config.vm.provision :chef_solo do |chef|
+      chef.cookbooks_path = "cookbooks"
+      chef.roles_path = "roles"
+      chef.data_bags_path = "data_bags"
+      chef.add_role "mapr_beta"
+      chef.add_role "mapr_tasktracker"
+      chef.add_role "mapr_fileserver"
+      chef.add_role "mapr_zookeeper"
+      chef.add_role "mapr_webserver"
+      chef.add_role "mapr_configure"
+
+      # # You may also specify custom JSON attributes:
+      chef.json = {
+        :mapr => {
+          :hostname => 'node2',
+          :fqdn => 'node2.cluster.com',
+          :ip => "192.168.33.12"
+        }
+      }
+    end
+  end
+
+  config.vm.define :u3 do |u3_config|
+    u3_config.vm.box = "ubuntu_12.04.1"
+    u3_config.vm.network :hostonly, "192.168.33.13"
+    u3_config.vm.provision :chef_solo do |chef|
+      chef.cookbooks_path = "cookbooks"
+      chef.roles_path = "roles"
+      chef.data_bags_path = "data_bags"
+      chef.add_role "mapr_beta"
+      chef.add_role "mapr_tasktracker"
+      chef.add_role "mapr_fileserver"
+      chef.add_role "mapr_zookeeper"
+      chef.add_role "mapr_jobtracker"
+      chef.add_role "mapr_configure"
+
+      # # You may also specify custom JSON attributes:
+      chef.json = {
+        :mapr => {
+          :host => 'node3',
+          :fqdn => 'node3.cluster.com',
+          :ip => "192.168.33.13"
+        }
+      }
+    end
+  end
+
+end

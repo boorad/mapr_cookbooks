@@ -1,15 +1,28 @@
+Status
+======
+
 This is not ready for use, bunch of work to do yet.
 
-1. Modify data_bags/cluster/cluster.json to suit your servers' information
-1. Change all attributes to proper values
-  1. path/to/attrib files
-1. Generate SSH keys and place in cookbooks/mapr/files/default/id_rsa* files
-1. Choose roles to add to runlist of each server
-1. Override/Change node-specific attributes
-  1. disks differ per machine
+I've made it through an Ubuntu 12.04.1 LTS install and the cluster is working fine.  Now off to test Centos 6.3
+
+If you want to try, even in this early stage:
+
+1. (optional) Change all attributes to proper values
+  1. cookbooks/users/attributes/default.rb
+  1. cookbooks/mapr/attributes/default.rb
+1. (optional) Generate SSH keys and place in cookbooks/mapr/files/default/id_rsa* files
+1. (required) Choose roles to add to runlist of each server
+  1. See sample Vagrantfile examples for 3-node cluster
+1. (optional) Override/Change node-specific attributes (either in Vagrantfile or Chef server)
+  1. if disks differ per machine
   1. hostname/fqdn/ip
+1. Configure your servers (or virtual machines) to run chef-client (or chef-solo) and boot them up.
 
-
+TODO:
+1. Test on CentOS 6.3 next
+1. Move users cookbook into mapr cookbook, to consolidate attributes
+1. Generate SSH keys and such with the rake task
+1. Publish Ubuntu and CentOS base boxes for Vagrant/Virtualbox - they include data disks as well as OS disk.
 
 
 Overview
