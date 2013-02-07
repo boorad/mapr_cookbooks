@@ -1,9 +1,9 @@
 Status
 ======
 
-This is not ready for use, bunch of work to do yet.
+This is almost ready for use, some work to do yet.
 
-I've made it through an Ubuntu 12.04.1 LTS install and the cluster is working fine.  Now off to test Centos 6.3
+I've made it through an Ubuntu 12.04.1 LTS install and the cluster is working fine.  Testing Centos 6.3 is next.
 
 If you want to try, even in this early stage:
 
@@ -16,7 +16,7 @@ If you want to try, even in this early stage:
 1. (optional) Override/Change node-specific attributes (either in Vagrantfile or Chef server)
   1. if disks differ per machine
   1. hostname/fqdn/ip
-1. Configure your servers (or virtual machines) to run chef-client (or chef-solo) and boot them up.
+1. (required) Configure your servers (or virtual machines) to run chef-client (or chef-solo) and boot them up.
 
 These steps are still manual, but are in the TODO list
 
@@ -26,7 +26,8 @@ These steps are still manual, but are in the TODO list
 1. Set MapR user ```/opt/mapr/bin/maprcli acl edit -type cluster -user <user>:fc```
 1. Hit ```https://<webserver-node-hostname>:8443/``` and get on with Hadooping
 
-TODO:
+TODO
+====
 
 1. Test on CentOS 6.3 next
 1. Move users cookbook into mapr cookbook, to consolidate attributes
