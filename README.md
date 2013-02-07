@@ -24,7 +24,7 @@ These steps are still manual, but are in the TODO list
 1. Start Zookeepers on all nodes ```sudo /etc/init.d/mapr-zookeeper start```
 1. Start Warden on all nodes ```sudo /etc/init.d/mapr-warden start```
 1. Set MapR user ```/opt/mapr/bin/maprcli acl edit -type cluster -user <user>:fc```
-1. Hit https://<webserver-node-hostname>:8443/ and get on with Hadooping
+1. Hit ```https://<webserver-node-hostname>:8443/``` and get on with Hadooping
 
 TODO:
 
@@ -36,6 +36,9 @@ TODO:
 1. Set MapR user with ```maprcli```
 1. Publish Ubuntu and CentOS base boxes for Vagrant/Virtualbox - they include data disks as well as OS disk.
 
+MapR Docs
+=========
+http://www.mapr.com/doc/display/MapR/Installation+Guide
 
 Overview
 ========
