@@ -7,9 +7,8 @@ I've made it through an Ubuntu 12.04.1 LTS install and the cluster is working fi
 
 If you want to try, even in this early stage:
 
-1. (optional) Change all attributes to proper values
-  1. ```cookbooks/users/attributes/default.rb```
-  1. ```cookbooks/mapr/attributes/default.rb```
+1. (optional) Change all attributes to proper values in:
+  ```cookbooks/mapr/attributes/default.rb```
 1. (optional) Generate SSH keys and place in cookbooks/mapr/files/default/id_rsa* files
 1. (required) Choose roles to add to runlist of each server
   1. See sample Vagrantfile examples for 3-node cluster ```vagrant/Vagrantfile.*```
@@ -30,7 +29,6 @@ TODO
 ====
 
 1. Test on CentOS 6.3 next
-1. Move users cookbook into mapr cookbook, to consolidate attributes
 1. Generate SSH keys and such with the rake task
 1. Handle mapr user's password
 1. Start services after install and config

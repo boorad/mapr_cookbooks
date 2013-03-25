@@ -1,3 +1,8 @@
+default[:mapr][:uid] = 2222
+default[:mapr][:gid] = 2222
+default[:mapr][:user] = "mapr"
+default[:mapr][:group] = "mapr"
+
 default[:ntp][:servers] = ["0.pool.ntp.org", "1.pool.ntp.org"]
 
 default[:mapr][:host] = "nodeX"

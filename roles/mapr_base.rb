@@ -4,7 +4,7 @@ run_list(
   "role[java]",
   "recipe[ntp]",
   "recipe[hostname]",
-  "recipe[users::mapr]",
+  "recipe[mapr::user_mapr]",
   "recipe[mapr::dns]",
   "recipe[mapr::ulimit]",
   "recipe[mapr::ssh]",
