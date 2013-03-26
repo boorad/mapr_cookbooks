@@ -1,0 +1,259 @@
+#! /bin/bash
+###
+#Provides: MapR Tech NodeManager Autostart
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Enables MapR Control Node services
+# Description:       This file should be used to construct scripts to be
+#                    placed in /etc/init.d.
+###
+
+BASEMAPR=${MAPR_HOME:-/opt/mapr}
+env=${BASEMAPR}/conf/env.sh
+[ -f $env ] && . $env
+
+if [ ! -z $JAVA_HOME ]; then
+    export PATH=$JAVA_HOME/bin:$PATH
+fi
+
+DESC="mapr-nodemanager"
+NAME=mapr-nodemanager
+YARN_NAME=yarn-nodemanager
+SCRIPTNAME=/etc/init.d/$NAME
+
+#Exit if the package is not installed
+[ -x "$SCRIPTNAME" ] || exit 0
+
+# Read configuration variable file if it is present.
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
+. /lib/lsb/init-functions
+
+. $BASEMAPR/server/initscripts-common.sh
+
+JAVA=$(CheckForJava)
+if [ $? != 0 ]; then
+    echo $JAVA
+    exit 1
+fi
+
+# note, the fallback case looks for hadoop-2* so won't work with 0.23 branch
+if [ -f "$BASEMAPR/hadoop/yarnversion" ]; then
+    ver=$(cat "$BASEMAPR/hadoop/yarnversion")
+else
+    ver=$(ls -lt $BASEMAPR/hadoop | grep "hadoop-2" | head -1 | sed 's/^.*hadoop-2//' | awk '{print 2$1}')
+fi
+
+# pick the user NodeManager should run as from the daemon.conf file and pass it
+# to the daemon command.
+DAEMON_CONF="$BASEMAPR/conf/daemon.conf"
+if [ -e $DAEMON_CONF ]; then
+    MAPR_USER=$(awk -F = '$1 == "mapr.daemon.user" { print $2 }' $DAEMON_CONF)
+fi
+
+# variables
+export HADOOP_YARN_USER=$MAPR_USER
+export HADOOP_YARN_HOME="${BASEMAPR}/hadoop/hadoop-${ver}"
+export HADOOP_CONF_DIR="${HADOOP_YARN_HOME}/etc/hadoop"
+export YARN_CONF_DIR="${HADOOP_YARN_HOME}/etc/hadoop"
+export YARN_LOG_DIR="${BASEMAPR}/logs"
+export YARN_ROOT_LOGGER="INFO,RFA"
+export YARN_LIB_DIR="${HADOOP_YARN_HOME}/lib"
+export YARN_BIN_DIR="${HADOOP_YARN_HOME}/bin"
+
+JAVA_HEAP_MAX=-Xmx1000m 
+
+# check envvars which might override default args
+if [ "$YARN_HEAPSIZE" != "" ]; then
+  #echo "run with heapsize $YARN_HEAPSIZE"
+  JAVA_HEAP_MAX="-Xmx""$YARN_HEAPSIZE""m"
+  #echo $JAVA_HEAP_MAX
+fi
+
+CLASSPATH="${YARN_CONF_DIR}:${CLASSPATH}"
+CLASSPATH=${CLASSPATH}:$HADOOP_YARN_HOME/share/hadoop/common/*
+CLASSPATH=${CLASSPATH}:$HADOOP_YARN_HOME/share/hadoop/common/lib/*
+CLASSPATH=${CLASSPATH}:$HADOOP_YARN_HOME/share/hadoop/mapreduce/*
+CLASSPATH=${CLASSPATH}:$HADOOP_YARN_HOME/share/hadoop/mapreduce/lib/*
+CLASSPATH=${CLASSPATH}:$HADOOP_YARN_HOME/share/hadoop/yarn/*
+CLASSPATH=${CLASSPATH}:$HADOOP_YARN_HOME/share/hadoop/yarn/lib/*
+
+# so that filenames w/ spaces are handled correctly in loops below
+IFS=
+
+# default log directory & file
+if [ "$YARN_LOG_DIR" = "" ]; then
+  YARN_LOG_DIR="$HADOOP_YARN_HOME/logs"
+fi
+if [ "$YARN_LOGFILE" = "" ]; then
+  YARN_LOGFILE="$YARN_NAME.log"
+fi
+
+# restore ordinary behaviour
+unset IFS
+
+# nodemanager stuffs
+CLASS='org.apache.hadoop.yarn.server.nodemanager.NodeManager'
+YARN_OPTS="$YARN_OPTS -server $YARN_NODEMANAGER_OPTS"
+if [ "$YARN_NODEMANAGER_HEAPSIZE" != "" ]; then
+    JAVA_HEAP_MAX="-Xmx""$YARN_NODEMANAGER_HEAPSIZE""m"
+fi
+
+
+YARN_OPTS="$YARN_OPTS -Dhadoop.log.dir=$YARN_LOG_DIR"
+YARN_OPTS="$YARN_OPTS -Dyarn.log.dir=$YARN_LOG_DIR"
+YARN_OPTS="$YARN_OPTS -Dhadoop.log.file=$YARN_LOGFILE"
+YARN_OPTS="$YARN_OPTS -Dyarn.log.file=$YARN_LOGFILE"
+YARN_OPTS="$YARN_OPTS -Dyarn.home.dir=$HADOOP_YARN_HOME"
+YARN_OPTS="$YARN_OPTS -Dhadoop.home.dir=$HADOOP_YARN_HOME"
+YARN_OPTS="$YARN_OPTS -Dhadoop.root.logger=${YARN_ROOT_LOGGER:-INFO,console}"
+YARN_OPTS="$YARN_OPTS -Dyarn.root.logger=${YARN_ROOT_LOGGER:-INFO,console}"
+
+#YARN_OPTS="$YARN_OPTS -Dlog4j.debug"
+
+pid="${YARN_LOG_DIR}/$YARN_NAME.pid"
+
+do_start()
+{ 
+    if [ -f $pid ]; then
+	if kill -0 `cat $pid` > /dev/null 2>&1; then
+	    echo $NAME running as process `cat $pid`. Stop it
+	    exit 1
+	fi
+    fi
+
+    if [ `whoami` = "root" ]; then
+	NICE_CMD="nice -n -10 "
+        #increase fd lmit
+	IncreaseFDLimit;
+	if [ "xxx$MAPR_USER" != "xxx" -a "$MAPR_USER" != "root" ]; then
+	    RUN_AS_CMD="su -p $MAPR_USER -c"
+	fi
+    fi
+
+    CMD="$JAVA -Dproc_nodemanager $JAVA_HEAP_MAX $YARN_OPTS -classpath $CLASSPATH $CLASS $@"
+    if [ "xxx$RUN_AS_CMD" != "xxx" ]; then
+	rm -f $pid
+	$RUN_AS_CMD "$CMD & echo \$! > $pid " 2>&1 < /dev/null &
+    else
+	$CMD 2>&1 < /dev/null &
+	echo $! > $pid
+    fi
+    sleep 1
+    if kill -0 `cat $pid` > /dev/null 2>&1; then
+	echo "Starting $NAME, logging to ${YARN_LOGFILE}"
+    else
+	echo "Error: $NAME can not be started. See ${YARN_LOGFILE} for details"
+	exit 1
+    fi
+
+}
+
+do_stop()
+{
+    if [ -f $pid ]; then
+	if kill -0 `cat $pid` > /dev/null 2>&1; then
+	    echo stopping $NAME
+	    kill `cat $pid`
+	    while kill -0 `cat $pid` > /dev/null 2>&1; do
+		sleep 1;
+	    done
+	    rm -f $pid
+	    return 0
+	else
+	    echo $NAME not running.
+	    return 1
+	fi
+    else
+	echo $NAME not running.
+	return 1
+    fi
+}
+
+do_status()
+{
+    if [ -f $pid ]; then
+	if kill -0 `cat $pid` > /dev/null 2>&1; then
+	    echo $NAME running as process `cat $pid`.
+	    return 0
+	fi
+	echo $pid exists with pid `cat $pid` but no $NAME.
+	return 1
+    fi
+    echo $NAME not running.
+    return 1
+}
+
+
+case "$1" in
+    start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	case "$?" in
+      # 0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+      #  2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	    0|1) exit 0 ;;
+	    2) exit 1 ;;
+	esac
+	;;
+    stop)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop
+	case "$?" in
+     # 0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+     # 2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	    0) exit 0 ;;
+	    1)  exit 1 ;;
+	esac
+	;;
+    status)
+	do_status
+	case "$?" in
+        # 0) [ "$VERBOSE" != no ] && log_end_msg 0 && exit 0 ;;
+        # 1) [ "$VERBOSE" != no ] && log_end_msg 1 && exit 1 ;;
+	    0) exit 0 ;;
+	    1) exit 1 ;;
+	esac
+	;;
+    #reload|force-reload)
+    # 
+    # Reload is not considered right now.
+    #;;
+    restart|force-reload)
+    #
+    # If the "reload" option is implemented then remove the
+    # 'force-reload' alias
+    #
+	log_daemon_msg "Restarting $DESC" "$NAME"
+	do_stop
+	case "$?" in
+	    0|1)
+		do_start
+		case "$?" in
+		    0) log_end_msg 0 ;;
+		    1) log_end_msg 1 ;; # Old process is still running
+		    *) log_end_msg 1 ;; # Failed to start
+		esac
+		;;
+	    *)
+                # Failed to stop
+		log_end_msg 1
+		;;
+	esac
+	;;
+    *)
+        #echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
+	echo "Usage: $SCRIPTNAME {start|stop|status|restart}" >&2
+	exit 3
+	;;
+esac
+
+
+:
