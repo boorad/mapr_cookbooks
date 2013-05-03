@@ -44,3 +44,5 @@ end
 link "/etc/init.d/mapr-nodemanager" do
   to "#{node[:mapr][:home]}/initscripts/mapr-nodemanager"
 end
+
+# TODO: notify for delayed service start
