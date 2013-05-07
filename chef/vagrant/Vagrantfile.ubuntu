@@ -10,7 +10,6 @@ Vagrant::Config.run do |config|
       chef.cookbooks_path = "cookbooks"
       chef.roles_path = "roles"
       chef.data_bags_path = "data_bags"
-      chef.add_role "mapr_beta"
       chef.add_role "mapr_tasktracker"
       chef.add_role "mapr_fileserver"
       chef.add_role "mapr_cldb"
@@ -36,7 +35,6 @@ Vagrant::Config.run do |config|
       chef.cookbooks_path = "cookbooks"
       chef.roles_path = "roles"
       chef.data_bags_path = "data_bags"
-      chef.add_role "mapr_beta"
       chef.add_role "mapr_tasktracker"
       chef.add_role "mapr_fileserver"
       chef.add_role "mapr_zookeeper"
@@ -61,11 +59,10 @@ Vagrant::Config.run do |config|
       chef.cookbooks_path = "cookbooks"
       chef.roles_path = "roles"
       chef.data_bags_path = "data_bags"
-      chef.add_role "mapr_beta"
+      chef.add_role "mapr_jobtracker"
       chef.add_role "mapr_tasktracker"
       chef.add_role "mapr_fileserver"
       chef.add_role "mapr_zookeeper"
-      chef.add_role "mapr_jobtracker"
       chef.add_role "mapr_configure"
 
       # # You may also specify custom JSON attributes:
