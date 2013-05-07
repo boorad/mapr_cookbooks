@@ -8,6 +8,7 @@ run_list(
   "recipe[mapr::dns]",
   "recipe[mapr::ulimit]",
   "recipe[mapr::ssh]",
+  "recipe[mapr::clush]",
   "recipe[mapr::repos]"
 )
 default_attributes(
