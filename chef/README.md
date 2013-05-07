@@ -1,12 +1,12 @@
 Status
 ======
 
-This is almost ready for use, some work to do yet.
+Tested:
+    Ubuntu 12.04.1 LTS
+    CentOS 6.3
 
-I've made it through an Ubuntu 12.04.1 LTS install and the cluster is working fine.  Testing Centos 6.3 is next.
-
-If you want to try, even in this early stage:
-
+Steps:
+======
 1. (optional) Change all attributes to proper values in:
   ```cookbooks/mapr/attributes/default.rb```
 1. (optional) Generate SSH keys and place in cookbooks/mapr/files/default/id_rsa* files
