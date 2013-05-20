@@ -8,7 +8,3 @@
 template "/etc/security/limits.d/root_limits.conf" do
   source "root_limits.erb"
 end
-
-template "/etc/pam.d/su" do
-  source "su.erb"
-end

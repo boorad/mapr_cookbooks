@@ -21,6 +21,16 @@ def get_nodes_with_role(role)
     nodes
 end
 
+# disable zookeeper and warden services until after configuration is complete
+service "mapr_zookeeper" do
+  action :disable
+end
+
+service "mapr_warden" do
+  action :disable
+end
+
+
 # get a list of the CLDB hostnames
 cldbs = get_nodes_with_role("mapr_cldb")
 cldb_list = cldbs.reject(&:empty?).join(',')

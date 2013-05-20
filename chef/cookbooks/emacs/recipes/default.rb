@@ -25,7 +25,8 @@ node['emacs']['packages'].each do |pkg|
       source "ports"
       action :install
     else
-      action :upgrade
+#      action :upgrade
+      action :install
     end
   end
 

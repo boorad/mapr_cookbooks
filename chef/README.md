@@ -2,8 +2,8 @@ Status
 ======
 
 Tested:
-    Ubuntu 12.04.1 LTS
-    CentOS 6.3
+* Ubuntu 12.04.1 LTS
+* CentOS 6.3
 
 Steps:
 ======
