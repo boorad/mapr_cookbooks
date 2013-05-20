@@ -1,0 +1,18 @@
+account     required      pam_unix.so
+account     sufficient    pam_succeed_if.so uid < 1000 quiet
+#account     [default=bad success=ok user_unknown=ignore] pam_ldap.so
+account     required      pam_permit.so
+
+auth    sufficient      pam_unix.so nullok_secure
+auth    requisite       pam_succeed_if.so uid >= 1000 quiet
+#auth    sufficient      pam_ldap.so use_first_pass
+auth    required        pam_deny.so
+
+password    sufficient    pam_unix.so md5 obscure min=4 max=8 nullok
+try_first_pass
+#password    sufficient    pam_ldap.so
+password    required      pam_deny.so
+
+session     required      pam_limits.so
+session     required      pam_unix.so
+#session     optional      pam_ldap.so
