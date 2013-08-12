@@ -339,7 +339,7 @@ addrs_priv="" ; addrs_pub=""
 mlaunch_indexes=""
 sleep 10
 ec2-describe-instances --region $region $instances | \
-    awk '/^INSTANCE/ {print $4" "$5" "$8" "$14" "$15}' > edi.out
+    awk '/^INSTANCE/ {print $4" "$5" "$8" "$14" "$15}' | sort -n -k3 > edi.out
 
 while read pub_name priv_name ami_index pub_ip priv_ip
 do
@@ -567,6 +567,13 @@ done
 wait
 
 
+# We'll assemble a hosts file (to aid in connecting to
+# the cluster from outside.
+#
+# Additionally, we'll take this opportunity to set up
+# the clush configuration on node 0 to access all other nodes
+# (as we do this ALL THE TIME)
+
 cluster_hosts_file=./hosts.${cluster%%.*}
 echo "" > $cluster_hosts_file
 
@@ -575,9 +582,15 @@ echo "" > $cluster_hosts_file
 #	tag tie instances ... but it's not a big deal for now
 echo "Cluster $cluster launched with $nhosts node(s)."
 
-sort -n -k3 edi.out | \
 while read pub_name priv_name ami_index pub_ip priv_ip
 do
+	[ -z "${nodeZero}" ] && nodeZero=$pub_name
+	if [ -z "${clist}" ] ; then
+		clist=${priv_name%%.*}
+	else
+		clist="${clist},${priv_name%%.*}"
+	fi
+
 	ntag=${NODE_NAME_ROOT}${ami_index}-${cluster%%.*}${tagSuffix}
 
 #	echo "    ${NODE_NAME_ROOT}${ami_index}: $pub_name (${priv_name%%.*})"
@@ -593,9 +606,27 @@ do
 				-n "echo 'shutdown -Py now' | sudo at now +$daysToLive days" &> /dev/null
 		fi
 	fi
-done
+done < edi.out
 
 echo "	(details in $cluster_hosts_file)"
+
+echo ""
+echo "Configuring clush on $nodeZero"
+cat > groups.clush << GCEOF
+all: $clist
+GCEOF
+
+if [ -f groups.clush ] ; then
+	scp $MY_SSH_OPTS groups.clush ${ec2user}@${nodeZero}:/tmp
+
+	if [ $ec2user = "root" ] ; then
+		ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
+			-n "[ -d /etc/clustershell ] && cp /tmp/groups.clush /etc/clustershell/groups"
+	else
+		ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
+			-n "[ -d /etc/clustershell ] && sudo cp /tmp/groups.clush /etc/clustershell/groups"
+	fi
+fi
 
 echo ""
 echo "Opening MCS port in security group configuration for this cluster"
