@@ -1,0 +1,3 @@
+node0:zookeeper,cldb,fileserver,tasktracker,nfs,webserver,hbase
+node1:zookeeper,cldb,fileserver,tasktracker,nfs,hbase
+node2:zookeeper,jobtracker,fileserver,tasktracker,nfs,hbase,metrics
