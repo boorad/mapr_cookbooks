@@ -42,6 +42,7 @@
 #		--image-su ec2-user  \
 #		--instance-type m1.large \
 #		--nametag foobar \
+#               --subnet-id 1234 \
 #		--days-to-live 1
 #
 #		# With MapR Custom AMI
@@ -56,6 +57,7 @@
 #		--instance-type m1.xlarge \
 #		--data-disks 2 \
 #		--nametag foobar \
+#               --subnet_id 1234 \
 #		--days-to-live 1
 #
 
@@ -89,6 +91,7 @@ usage() {
 	   [ --license-file <license to be installed> ]
 	   [ --data-disks <# of ephemeral disks to FORCE into the AMI> ]
 	   [ --nametag <uniquifying cluster tag> ]
+           [ --subnet_id <id of [virtual private cloud] subnet> ]
 	   [ --days-to-live <max lifetime> ]
    "
   echo ""
@@ -135,6 +138,7 @@ do
   --data-disks)   dataDisks=$2 ;;
   --license-file) licenseFile=$2 ;;
   --nametag)      nametag=$2 ;;
+  --subnet_id)    subnet_id=$2 ;;
   --days-to-live) daysToLive=$2 ;;
   *)
      echo "**** Bad argument: " $1
@@ -158,6 +162,7 @@ if [ ${maprversion%%.*} -le 2 ] ; then
 else
     licenseFile=${licenseFile:-"$HOME/Documents/MapR/licenses/LatestDemoLicense-M7.txt"}
 fi
+subnet_id=${subnet_id:-""}
 
 # Don't deal with licensing if the file doesn't exist
 [ ! -r ${licenseFile} ] && licenseFile=""
@@ -236,6 +241,15 @@ if [ $? -ne 0 ] ; then
 	exit 1
 fi
 
+#
+# Virtual Private Cloud subnet
+#
+if [ -z $subnet_id ] ; then
+    echo "no subnet provided, so not launching in VPC"
+    ### TODO: ec2-create-vpc and get subnet id if a "-1" is provided
+else
+    subnet=$subnet_id
+fi
 
 # TBD
 #	Create a security group for the cluster (eg JClouds)
@@ -255,6 +269,7 @@ echo "	zone ${zone:-'unset'}"
 echo "	dataDisks ${dataDisks:-unset}"
 echo "	licenseFile ${licenseFile:-unset}"
 echo "	nametag ${nametag:-unset}"
+echo "	subnet ${subnet:-unset}"
 echo "	daysToLive ${daysToLive:-unset}"
 echo "----- "
 echo "Proceed {y/N} ? "
@@ -317,6 +332,7 @@ ec2-run-instances $maprimage \
 	  --user-data-file $MAPR_LAUNCH_SCRIPT \
 	  --instance-type $instancetype \
 	  ${AMI_DISK_CONFIG:-} \
+          --subnet $subnet \
 	  --region $region \
 	  --availability-zone ${zone:-${region}b} | tee eri.out
 
