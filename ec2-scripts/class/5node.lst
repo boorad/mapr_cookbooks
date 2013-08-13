@@ -1,6 +1,6 @@
 # Sample 5-node M5 cluster (per configuration in MapR Documentation)
-node0:zookeeper,cldb,fileserver,tasktracker,nfs
-node1:zookeeper,cldb,fileserver,tasktracker,nfs,webserver
-node2:zookeeper,fileserver,tasktracker,nfs,webserver
-node3:fileserver,tasktracker,nfs,jobtracker,metrics
-node4:fileserver,tasktracker,nfs,jobtracker,metrics
+node0:zookeeper,cldb,fileserver,tasktracker,nfs,hbase-regionserver
+node1:zookeeper,cldb,fileserver,tasktracker,nfs,webserver,hbase-regionserver
+node2:zookeeper,fileserver,tasktracker,nfs,webserver,hbase-regionserver
+node3:fileserver,tasktracker,nfs,jobtracker,metrics,hbase-master,hbase-regionserver
+node4:fileserver,tasktracker,nfs,jobtracker,metrics,hbase-master,hbase-regionserver

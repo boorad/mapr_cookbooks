@@ -1,0 +1,13 @@
+./launch-class-cluster.sh \
+  --cluster coke \
+  --mapr-version 2.1.3.2 \
+  --config-file class/1node.lst \
+  --region us-west-2 \
+  --zone us-west-2a \
+  --key-file ~/.ssh/brad-se \
+  --image ami-f5ee78c5 \
+  --image-su ec2-user  \
+  --instance-type m1.large \
+  --nametag brad \
+  --subnet_id subnet-6bb25c00 \
+  --days-to-live 1
