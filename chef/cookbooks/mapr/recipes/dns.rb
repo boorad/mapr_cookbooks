@@ -12,9 +12,9 @@ end
 
 
 # nodes in cluster
-nodes = search(:node, "*:*")
+#nodes = search(:node, "*:*")
 
-nodes.each do |n|
+node[:mapr][:nodes].each do |n|
 
   hostsfile_entry n[:mapr][:ip] do
     hostname n[:mapr][:host]
