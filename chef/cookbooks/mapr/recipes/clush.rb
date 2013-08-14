@@ -11,7 +11,7 @@ def get_nodes_with_role_sp(role)
     if role == ""
       role = "all"
     end
-    role_nodes = n[:mapr][:groups][role]
+    role_nodes = node[:mapr][:groups][role]
 
     role_nodes.each do |n|
       nodes.push(n)

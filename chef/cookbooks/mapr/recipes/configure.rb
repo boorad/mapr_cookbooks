@@ -10,12 +10,15 @@
 ##
 
 # TODO: move this to shared lib?
-def get_nodes_with_role(role)
+def get_nodes_with_role_sp(role)
     nodes = []
-    role_nodes = search(:node, "role:#{role}")
+    if role == ""
+      role = "all"
+    end
+    role_nodes = node[:mapr][:groups][role]
 
     role_nodes.each do |n|
-      nodes.push(n[:mapr][:fqdn])
+      nodes.push(n)
     end
 
     nodes
@@ -32,8 +35,8 @@ end
 
 
 # get a list of the CLDB hostnames
-cldbs = get_nodes_with_role("mapr_cldb")
-cldb_list = cldbs.reject(&:empty?).join(',')
+cldbs = get_nodes_with_role("cldb")
+cldb_list = zks.reject(&:empty?).join(',')
 
 # get a list of the ZooKeeper hostnames
 zks = get_nodes_with_role("mapr_zookeeper")
