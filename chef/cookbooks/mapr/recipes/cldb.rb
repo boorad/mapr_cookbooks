@@ -6,5 +6,5 @@
 #
 
 package "mapr-cldb" do
-  options "--allow-unauthorized"
+  options "--allow-unauthenticated"
 end

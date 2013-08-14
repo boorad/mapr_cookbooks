@@ -6,5 +6,5 @@
 #
 
 package "mapr-pig" do
-  options "--allow-unauthorized"
+  options "--allow-unauthenticated"
 end

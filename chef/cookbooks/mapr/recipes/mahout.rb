@@ -6,5 +6,5 @@
 #
 
 package "mapr-mahout" do
-  options "--allow-unauthorized"
+  options "--allow-unauthenticated"
 end

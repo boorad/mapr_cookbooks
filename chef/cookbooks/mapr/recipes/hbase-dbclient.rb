@@ -6,5 +6,5 @@
 #
 
 package "mapr-hbase-dbclient" do
-  options "--allow-unauthorized"
+  options "--allow-unauthenticated"
 end

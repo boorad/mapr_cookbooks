@@ -10,5 +10,5 @@
 # TODO: SUSE   package "nfs-client"
 
 package "mapr-nfs" do
-  options "--allow-unauthorized"
+  options "--allow-unauthenticated"
 end

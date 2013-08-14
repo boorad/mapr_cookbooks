@@ -6,5 +6,5 @@
 #
 
 package "mapr-hive" do
-  options "--allow-unauthorized"
+  options "--allow-unauthenticated"
 end

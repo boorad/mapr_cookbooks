@@ -6,5 +6,5 @@
 #
 
 package "mapr-metrics" do
-  options "--allow-unauthorized"
+  options "--allow-unauthenticated"
 end
