@@ -8,4 +8,6 @@
 # a calculator program used by createTTVolume.sh
 package "bc"
 
-package "mapr-tasktracker"
+package "mapr-tasktracker" do
+  options "--allow-unauthenticated"
+end
