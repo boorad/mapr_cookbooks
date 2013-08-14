@@ -9,14 +9,12 @@
 def get_nodes_with_role_sp(role)
     nodes = []
     if role == ""
-      query = "*"
-    else
-      query = "role:#{role}"
+      role = "all"
     end
-    role_nodes = search(:node, query)
+    role_nodes = n[:mapr][:groups][role]
 
     role_nodes.each do |n|
-      nodes.push(n[:mapr][:host])
+      nodes.push(n)
     end
 
     nodes.reject(&:empty?).join(' ')
@@ -28,11 +26,11 @@ end
 
 package "clustershell"
 
-all = get_nodes_with_role_sp("")
-cldb = get_nodes_with_role_sp("mapr_cldb")
-zk = get_nodes_with_role_sp("mapr_zookeeper")
-jt = get_nodes_with_role_sp("mapr_jobtracker")
-tt = get_nodes_with_role_sp("mapr_tasktracker")
+all = get_nodes_with_role_sp("all")
+cldb = get_nodes_with_role_sp("cldb")
+zk = get_nodes_with_role_sp("zk")
+jt = get_nodes_with_role_sp("jt")
+tt = get_nodes_with_role_sp("tt")
 
 # groups file
 template "/etc/clustershell/groups" do
