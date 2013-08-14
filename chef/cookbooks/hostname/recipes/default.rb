@@ -26,7 +26,7 @@
 
 require 'chef/util/file_edit'
 
-fqdn = node[:mapr][:fqdn]
+fqdn = node[:mapr][:node][:fqdn]
 if fqdn
 
   fqdn =~ /^([^.]+)/
@@ -63,7 +63,7 @@ if fqdn
 
   ohai "reload" if changed
 else
-  log "Please set the node[:mapr][:fqdn] attribute to desired hostname" do
+  log "Please set the node[:mapr][:node][:fqdn] attribute to desired hostname" do
     level :warn
   end
 end
