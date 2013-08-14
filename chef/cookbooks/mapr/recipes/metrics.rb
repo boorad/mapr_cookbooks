@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-metrics"
+package "mapr-metrics" do
+  options "--allow-unauthorized"
+end

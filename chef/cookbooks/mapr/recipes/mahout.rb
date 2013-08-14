@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-mahout"
+package "mapr-mahout" do
+  options "--allow-unauthorized"
+end

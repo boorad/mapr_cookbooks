@@ -7,4 +7,6 @@
 
 # TODO: ajaxterm needed?
 
-package "mapr-webserver"
+package "mapr-webserver" do
+  options "--allow-unauthorized"
+end

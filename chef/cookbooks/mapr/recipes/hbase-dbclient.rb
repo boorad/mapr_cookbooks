@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-hbase-dbclient"
+package "mapr-hbase-dbclient" do
+  options "--allow-unauthorized"
+end

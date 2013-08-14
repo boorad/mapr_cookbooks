@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-hbase"
+package "mapr-hbase" do
+  options "--allow-unauthorized"
+end

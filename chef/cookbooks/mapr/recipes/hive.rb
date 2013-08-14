@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-hive"
+package "mapr-hive" do
+  options "--allow-unauthorized"
+end

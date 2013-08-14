@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-fileserver"
+package "mapr-fileserver" do
+  options "--allow-unauthorized"
+end

@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-cldb"
+package "mapr-cldb" do
+  options "--allow-unauthorized"
+end

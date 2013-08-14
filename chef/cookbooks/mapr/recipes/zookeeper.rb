@@ -5,4 +5,6 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-zookeeper"
+package "mapr-zookeeper" do
+  options "--allow-unauthorized"
+end
