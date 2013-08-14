@@ -39,7 +39,7 @@ cldbs = get_nodes_with_role("cldb")
 cldb_list = zks.reject(&:empty?).join(',')
 
 # get a list of the ZooKeeper hostnames
-zks = get_nodes_with_role("mapr_zookeeper")
+zks = get_nodes_with_role("zk")
 zk_list = zks.reject(&:empty?).join(',')
 
 execute 'configure.sh' do
