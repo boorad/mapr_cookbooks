@@ -18,7 +18,7 @@ node[:mapr][:nodes].each do |n|
 
   hostsfile_entry n[:ip] do
     hostname n[:host]
-    aliases [n:[fqdn]]
+    aliases [n[:fqdn]]
     action :create
   end
 
