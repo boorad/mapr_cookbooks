@@ -1,0 +1,13 @@
+[maprtech]
+name=MapR Technologies
+baseurl=REPLACE_WITH_REPO_URL
+enabled=1
+gpgcheck=0
+protect=1
+
+[maprecosystem]
+name=MapR Technologies
+baseurl=http://package.mapr.com/releases/ecosystem/redhat
+enabled=1
+gpgcheck=0
+protect=1
