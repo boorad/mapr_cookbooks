@@ -2,13 +2,15 @@
 #
 #  Script to open ports in a given EC2 security group to allow
 #  access to the MapR services from outside the AWS environment
+#	For port details, check out 
+#		http://www.mapr.com/doc/display/MapR/Ports+Used+by+MapR 
 #
 # Assumptions:
 #	ec2-run-instances tool is in the path
 #	EC2 env variables set for target AWS account
 #		EC2_HOME, EC2_CERT, and EC2_PRIVATE_KEY
 #
-# Script
+# Script 
 #
 
 THIS_SCRIPT=$0
@@ -16,12 +18,12 @@ THIS_SCRIPT=$0
 usage() {
   echo "
   Usage:
-    $THIS_SCRIPT <sg_name_or_id>  [ --region <AMZ_REGION> [ <other AWS opts>] ]
+    $THIS_SCRIPT <sg_name_or_id>  [ --region <AMZ_REGION> [ <other AWS opts>] ] 
    "
   echo ""
   echo "EXAMPLES"
-  echo "  $0 sg-24a7eb4e --region us-west-1"
-  echo "  $0 MySecGroup  --region us-east-1"
+  echo "  $0 sg-24a7eb4e --region us-west-1" 
+  echo "  $0 MySecGroup  --region us-east-1" 
 }
 
 if [ $# -lt 1 ] ; then
@@ -57,7 +59,7 @@ echo "Current status of Security Group $secgroup"
 ec2-describe-group $secgroup "$@"
 
 echo ""
-# For interactive shells, we'll ask to proceed
+# For interactive shells, we'll ask to proceed 
 if [ -t 0  -o  -S /dev/stdin ] ; then
 	echo "Proceed {y/N} ? "
 	read YoN
@@ -72,24 +74,26 @@ udpPortList=""
 
 # Web Services and Ajaxterm/JobTracker ports
 	tcpPortList="$tcpPortList 8080 8443"
+	tcpPortList="$tcpPortList 7221"
 	tcpPortList="$tcpPortList 9001 50030 50060"
 
 # NFS ports
 	tcpPortList="$tcpPortList 111 2049"
 	udpPortList="$udpPortList 111"
 
-if [ -n "$udpPortList" ] ; then
+if [ -n "$udpPortList" ] ; then 
 	for port in $udpPortList
 	do
-		echo ec2-authorize $secgroup "$@" -P udp -p $port -s 0.0.0.0/0
+		ec2-authorize $secgroup "$@" -P udp -p $port -s 0.0.0.0/0
 	done
 fi
 
 for port in $tcpPortList
 do
-	echo ec2-authorize $secgroup "$@" -P tcp -p $port -s 0.0.0.0/0
+	ec2-authorize $secgroup "$@" -P tcp -p $port -s 0.0.0.0/0
 done
 
 echo ""
 echo "Final status of Security Group"
 ec2-describe-group $secgroup "$@"
+
