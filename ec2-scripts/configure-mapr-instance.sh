@@ -1,45 +1,47 @@
 #! /bin/bash
 #
 #   $File: configure-mapr-instance.sh $
-#   $Date: Tue Aug 06 14:46:43 2013 -0700 $
+#   $Date: Wed Aug 28 09:52:34 2013 -0700 $
 #   $Author: dtucker $
 #
 # Script to be executed on top of a base MapR image ... an
 # instance with the following stable configuration:
-#	Java has been installed
+#	Java has been installed 
 #	the MapR software repositories are configured
 #	the MAPR_USER exists
-#
+#	
 # NOTE: any or all of these phases could be handled by this script.
 #
 # Expectations:
 #	- Script run as root user (hence no need for permission checks)
+#	- Root user's home directory is /root (a few places we use that)
 #	- Basic distro differences (APT-GET vs YUM, etc) can be handled
 #	    There are so few differences, it seemed better to manage one script.
 #
-# Tested with MapR 2.0.1 and 2.1.1
+# Tested with MapR 2.0.x, 2.1.1, 3.0.x
 #
 # JAVA
-#	This script default to OpenJDK; it would be a simple change to
+#	This script default to OpenJDK; it would be a simple change to 
 #	enable Oracle Java ... just be sure to handle the interactive
 #	license agreement.
 #
 
 # Metadata for this installation ... pull out details that we'll need
-#
+# 
 murl_top=http://169.254.169.254/latest/meta-data
 murl_attr="${murl_top}/attributes"
 
 THIS_FQDN=$(curl -f $murl_top/hostname)
+[ -z "${THIS_FQDN}" ] && THIS_FQDN=`hostname --fqdn`
 THIS_HOST=${THIS_FQDN%%.*}
 AMI_IMAGE=$(curl -f $murl_top/ami-id)    # name of initial image loaded here
-AMI_LAUNCH_INDEX=$(curl -f $murl_top/ami-launch-index)
+AMI_LAUNCH_INDEX=$(curl -f $murl_top/ami-launch-index) 
 
 MAPR_VERSION=$(curl -f $murl_attr/maprversion)    # mapr version, eg. 1.2.3
 MAPR_VERSION=${MAPR_VERSION:-2.1.2}
 
 # A comma separated list of packages (without the "mapr-" prefix)
-# to be installed.   This script assumes that NONE of them have
+# to be installed.   This script assumes that NONE of them have 
 # been installed.
 MAPR_PACKAGES=$(curl -f $murl_attr/maprpackages)
 MAPR_PACKAGES=${MAPR_PACKAGES:-"core,fileserver"}
@@ -60,7 +62,7 @@ MAPR_METRICS_DEFAULT=metrics
 LOG=/tmp/configure-mapr.log
 
 # Extend the PATH just in case ; probably not necessary
-PATH=/sbin:/usr/sbin:$PATH
+PATH=/sbin:/usr/sbin:/usr/bin:/bin:$PATH
 
 # Helper utility to log the commands that are being run and
 # save any errors to a log file
@@ -129,7 +131,7 @@ function update_os_rpm() {
 }
 
 # Make sure that NTP service is sync'ed and running
-# Key Assumption: the /etc/ntp.conf file is reasonable for the
+# Key Assumption: the /etc/ntp.conf file is reasonable for the 
 #	hosting cloud platform.   We could shove our own NTP servers into
 #	place, but that seems like a risk.
 function update_ntp_config() {
@@ -150,7 +152,7 @@ function update_ntp_config() {
 	ntpdate pool.ntp.org
 	$SERVICE_SCRIPT start
 
-		# TBD: copy in /usr/share/zoneinfo file based on
+		# TBD: copy in /usr/share/zoneinfo file based on 
 		# zone in which the instance is deployed
 	zoneInfo=$(curl -f ${murl_top}/zone)
 	curZone=`basename "${zoneInfo}"`
@@ -173,7 +175,7 @@ function update_ntp_config() {
 			newTZ=${curTZ}
 	esac
 
-	if [ -n "${newTZ}"  -a  -f $TZ_HOME/$newTZ  -a  "${curTZ}" != "${newTZ}" ]
+	if [ -n "${newTZ}"  -a  -f $TZ_HOME/$newTZ  -a  "${curTZ}" != "${newTZ}" ] 
 	then
 		echo "    Updating TZ to $newTZ" >> $LOG
 		cp -p $TZ_HOME/$newTZ /etc/localtime
@@ -203,13 +205,13 @@ function update_os() {
   fi
 
 	# raise TCP rbuf size
-  echo 4096 1048576 4194304 > /proc/sys/net/ipv4/tcp_rmem
+  echo 4096 1048576 4194304 > /proc/sys/net/ipv4/tcp_rmem  
 #  sysctl -w vm.overcommit_memory=1  # swap behavior
 
 		# SElinux gets in the way of older MapR installs (1.2)
 		# as well as MySQL (if we want a non-standard data directory)
-		#	Be sure to disable it IMMEDIATELY for the rest of this
-		#	process; the change to SELINUX_CONFIG will ensure the
+		#	Be sure to disable it IMMEDIATELY for the rest of this 
+		#	process; the change to SELINUX_CONFIG will ensure the 
 		#	change across reboots.
 	SELINUX_CONFIG=/etc/selinux/config
 	if [ -f $SELINUX_CONFIG ] ; then
@@ -245,7 +247,7 @@ function install_openjdk_deb() {
     echo "Installing OpenJDK packages (for deb distros)" >> $LOG
 
 	apt-get install -y x11-utils
-	apt-get install -y openjdk-7-jdk openjdk-7-doc
+	apt-get install -y openjdk-7-jdk openjdk-7-doc 
 
 	JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
 	export JAVA_HOME
@@ -255,7 +257,7 @@ function install_openjdk_deb() {
 function install_openjdk_rpm() {
     echo "Installing OpenJDK packages (for rpm distros)" >> $LOG
 
-	yum install -y java-1.7.0-openjdk java-1.7.0-openjdk-devel
+	yum install -y java-1.7.0-openjdk java-1.7.0-openjdk-devel 
 	yum install -y java-1.7.0-openjdk-javadoc
 
 	JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk.x86_64
@@ -289,7 +291,7 @@ function install_java() {
 
 	sleep 10
 	let attempts=${attempts}+1
-  done
+  done 
 
   echo "!!! Java installation FAILED !!!  Node unusable !!!" >> $LOG
   return 1
@@ -298,7 +300,7 @@ function install_java() {
 
 # Takes the packages defined by MAPR_PACKAGES and makes sure
 # that those (and only those) pieces of MapR software are installed.
-# The idea is that a single image with EXTRA packages could still
+# The idea is that a single image with EXTRA packages could still 
 # be used, and the extraneous packages would just be removed.
 #	NOTE: We expect MAPR_PACKAGES to be short-hand (cldb, nfs, etc.)
 #		instead of the full "mapr-cldb" name.  But the logic handles
@@ -309,7 +311,7 @@ function install_java() {
 #
 install_mapr_packages() {
 	echo Installing MapR software components >> $LOG
-
+	
 	if which dpkg &> /dev/null; then
 		MAPR_INSTALLED=`dpkg --list mapr-* | grep ^ii | awk '{print $2}'`
 	elif which rpm &> /dev/null; then
@@ -324,7 +326,7 @@ install_mapr_packages() {
 	done
 
 		# Be careful about removing -core or -internal packages
-		# Never remove "core", and remove "-internal" only if we
+		# Never remove "core", and remove "-internal" only if we 
 		# remove the parent as well (that logic is not yet implemented).
 	MAPR_TO_REMOVE=""
 	for pkg in $MAPR_INSTALLED
@@ -399,14 +401,27 @@ function remove_from_fstab() {
 }
 
 function unmount_unused() {
+    [ -z "${1}" ] && return
+
+	echo "Unmounting filesystems ($1)" >> $LOG
+
     fsToUnmount=${1:-}
 
     for fs in `echo ${fsToUnmount//,/ }`
     do
-        fuser -s $fs 2> /dev/null
+		echo -n "$fs in use by " | tee -a $LOG
+        fuser $fs >> $LOG 2> /dev/null
         if [ $? -ne 0 ] ; then
+			echo "<no_one>" >> $LOG
             umount $fs
             remove_from_fstab $fs
+		else
+			echo "" >> $LOG
+			pids=`grep "^${fs} in use by " $LOG | cut -d' ' -f5-`
+			for pid in $pids
+			do
+				ps --no-headers -p $pid >> $LOG
+			done
         fi
     done
 }
@@ -463,7 +478,7 @@ provision_mapr_disks() {
 		if [ $abortProvisioning -ne 0 ] ; then
 			echo "${MAPR_DISK_PREREQS} package(s) not found" >> $LOG
 			echo "  local disks will not be configured for MapR" >> $LOG
-			return
+			return 
 		fi
 	fi
 
@@ -481,7 +496,7 @@ provision_mapr_disks() {
 			for pkg in `echo ${MAPR_DISKS_PREREQS//,/ }`
 			do
 				echo $MAPR_PACKAGES | grep -q $pkg
-				if [ $? -eq 0 ] ; then
+				if [ $? -eq 0 ] ; then 
 					echo "MapR package{s} $MAPR_DISKS_PREREQS installed" >> $LOG
 					echo "Those packages require physical disks for MFS" >> $LOG
 					echo "Exiting startup script" >> $LOG
@@ -501,7 +516,7 @@ provision_mapr_disks() {
 #			MAPR_PACKAGES		(global)
 #
 # NOTE: It is simpler to use the hostname for mysql connections
-#	even on the host running the mysql instance (probably because
+#	even on the host running the mysql instance (probably because 
 #	of mysql's strange handling of "localhost" when validating
 #	login privileges).
 #
@@ -516,7 +531,7 @@ configure_mapr_metrics() {
 
 	if which yum &> /dev/null; then
 		yum list soci-mysql > /dev/null 2> /dev/null
-		if [ $? -ne 0 ] ; then
+		if [ $? -ne 0 ] ; then 
 			echo "Skipping metrics configuration; missing dependencies" >> $LOG
 			return 0
 		fi
@@ -525,7 +540,7 @@ configure_mapr_metrics() {
 	echo "Configuring task metrics connection" >> $LOG
 
 	# If the metrics server is specified, make sure the
-	# metrics package is installed on every job tracker and
+	# metrics package is installed on every job tracker and 
 	# webserver system ; otherwise, we'll just skip this step
 	#
 	#	NOTE: while it is unlikely that the METRICS_SERVER will
@@ -562,12 +577,12 @@ configure_mapr_metrics() {
 		# Version 2 and beyond handles that configuration in configure.sh
 	if [ -f $MAPR_HOME/roles/webserver  -a  ${MAPR_VERSION%%.*} = "1" ] ; then
 		HIBCFG=$MAPR_HOME/conf/hibernate.cfg.xml
-			# TO BE DONE ... fix database properties
+			# TO BE DONE ... fix database properties 
 	fi
 }
 
 
-# Simple script to do any config file customization prior to
+# Simple script to do any config file customization prior to 
 # program launch
 configure_mapr_services() {
 	echo "Updating configuration for MapR services" >> $LOG
@@ -576,7 +591,7 @@ configure_mapr_services() {
 # on instane type and other deployment details.   This is only
 # necessary if the default configuration files from configure.sh
 # are sub-optimal for Cloud deployments.  Some examples might be:
-#
+#	
 
 	CLDB_CONF_FILE=${MAPR_HOME}/conf/cldb.conf
 	MFS_CONF_FILE=${MAPR_HOME}/conf/mfs.conf
@@ -585,7 +600,7 @@ configure_mapr_services() {
 # give MFS more memory -- only on slaves, not on masters
 #sed -i 's/service.command.mfs.heapsize.percent=.*$/service.command.mfs.heapsize.percent=35/'
 
-# give CLDB more threads
+# give CLDB more threads 
 # sed -i 's/cldb.numthreads=10/cldb.numthreads=40/' $MAPR_HOME/conf/cldb.conf
 
 		# Disable central configuration (spinning up Java processes
@@ -629,7 +644,7 @@ function resolve_zknodes() {
 
 # MapR NFS services should be configured AFTER the cluster
 # is running and the license is installed.
-#
+# 
 # If the node is running NFS, then we default to a localhost
 # mount; otherwise, we look for the spefication from our
 # parameter file
@@ -671,7 +686,7 @@ configure_mapr_nfs() {
 #
 # Isolate the creation of the metrics database itself until
 # LATE in the installation process, so that we can use the
-# cluster database itself if we'd like.  Default to
+# cluster database itself if we'd like.  Default to 
 # using that resource, and fall back to local storage if
 # the creation of the volume fails.
 #
@@ -691,17 +706,17 @@ create_metrics_db() {
 
 		MYCNF=/etc/mysql/my.cnf
 		sed -e "s/^bind-address.* 127.0.0.1$/bind-address = 0.0.0.0/g" \
-			-i".localhost" $MYCNF
+			-i".localhost" $MYCNF 
 
 		update-rc.d -f mysql enable
 		service mysql stop
 		MYSQL_OK=$?
-	elif which rpm &> /dev/null  ; then
+	elif which rpm &> /dev/null  ; then 
 		yum install -y mysql-server mysql
 
 		MYCNF=/etc/my.cnf
 		sed -e "s/^bind-address.* 127.0.0.1$/bind-address = 0.0.0.0/g" \
-			-i".localhost" $MYCNF
+			-i".localhost" $MYCNF 
 
 		chkconfig mysqld on
 		service mysqld stop
@@ -716,12 +731,12 @@ create_metrics_db() {
 
 	echo "Initializing metrics database ($MAPR_METRICS_DB)" >> $LOG
 
-		# If we have licensed NFS connectivity to the cluster, then
+		# If we have licensed NFS connectivity to the cluster, then 
 		# we can create a MapRFS volume for the database and point there.
-		# If the NFS mount point isn't visible, just leave the
+		# If the NFS mount point isn't visible, just leave the 
 		# data directory as is and warn the user.
 	useMFS=0
-	maprcli license apps | grep -q -w "NFS"
+	maprcli license apps | grep -q -w "NFS" 
 	if [ $? -eq 0 ] ; then
 		[ -f $MAPR_HOME/roles/nfs ] && useMFS=1
 		[ -n "${MAPR_NFS_SERVER}" ] && useMFS=1
@@ -733,7 +748,7 @@ create_metrics_db() {
 		# Given that MySQL CANNOT use MFS if it is enabled, we default
 		# to NOT using MFS unless we're SURE SELINUX is disabled.
 	seState=`cat /selinux/enforce`
-	[ ${seState:-1} -eq 1 ] && useMFS=0
+	[ -f /etc/selinux/config  -a  ${seState:-1} -eq 1 ] && useMFS=0
 
 	if [ $useMFS -eq 1 ] ; then
 #		MYSQL_DATA_DIR=/var/mapr/mysql
@@ -745,7 +760,7 @@ create_metrics_db() {
 			# Create the volume and set ownership
 			# We probably don't need both steps ... but just in case
 		maprcli volume create -name mapr.mysql -user "mysql:fc root:fc" \
-		  -path $MYSQL_DATA_DIR -createparent true -topology ${defTopology:-/}
+		  -path $MYSQL_DATA_DIR -createparent true -topology ${defTopology:-/} 
 		maprcli acl edit -type volume -name mapr.mysql -user mysql:fc
 
 		if [ $? -eq 0 ] ; then
@@ -760,13 +775,13 @@ create_metrics_db() {
 
 			    sedArg="`echo "$MYSQL_DATA_DIR" | sed -e 's/\//\\\\\//g'`"
 				sed -e "s/^datadir[ 	=].*$/datadir = ${sedArg}/g" \
-					-i".localdata" $MYCNF
+					-i".localdata" $MYCNF 
 
 					# On Ubuntu, AppArmor gets in the way of
-					# mysqld writing to the NFS directory; We'll
+					# mysqld writing to the NFS directory; We'll 
 					# unload the configuration here so we can safely
 					# update the aliases file to enable the proper
-					# access.  The profile will be reloaded when mysql
+					# access.  The profile will be reloaded when mysql 
 					# is launched below
 				if [ -f /etc/apparmor.d/usr.sbin.mysqld ] ; then
 					echo "alias /var/lib/mysql/ -> ${MYSQL_DATA_DIR}/," >> \
@@ -791,7 +806,7 @@ create_metrics_db() {
 	[ -x /etc/init.d/mysql ]   &&  service mysql  start
 	[ -x /etc/init.d/mysqld ]  &&  service mysqld start
 
-		# At this point, we can customize the MySQL installation
+		# At this point, we can customize the MySQL installation 
 		# as needed.   For now, we'll just enable multiple connections
 		# and create the database instance we need.
 		#	WARNING: don't mess with the single quotes !!!
@@ -809,7 +824,7 @@ metrics_EOF
 		# a new metrics db name.
 	if [ !  $MAPR_METRICS_DB = $MAPR_METRICS_DEFAULT ] ; then
 		sed -e "s/ $MAPR_METRICS_DEFAULT/ $MAPR_METRICS_DB/g" \
-			-i".default" $MAPR_HOME/bin/setup.sql
+			-i".default" $MAPR_HOME/bin/setup.sql 
 	fi
 	mysql -e "source $MAPR_HOME/bin/setup.sql"
 
@@ -817,10 +832,26 @@ metrics_EOF
 #	/usr/bin/mysqladmin -u root password "$MAPR_PASSWD"
 }
 
-
-function enable_mapr_services()
+function disable_mapr_services() 
 {
-	echo Enabling  MapR services >> $LOG
+	echo Disabling MapR services >> $LOG
+
+	if which update-rc.d &> /dev/null; then
+		[ -f $MAPR_HOME/conf/warden.conf ] && \
+			c update-rc.d -f mapr-warden disable
+		[ -f $MAPR_HOME/roles/zookeeper ] && \
+			c update-rc.d -f mapr-zookeeper disable
+	elif which chkconfig &> /dev/null; then
+		[ -f $MAPR_HOME/conf/warden.conf ] && \
+			c chkconfig mapr-warden off
+		[ -f $MAPR_HOME/roles/zookeeper ] && \
+			c chkconfig mapr-zookeeper off
+	fi
+}
+
+function enable_mapr_services() 
+{
+	echo Enabling MapR services >> $LOG
 
 	if which update-rc.d &> /dev/null; then
 		[ -f $MAPR_HOME/conf/warden.conf ] && \
@@ -835,7 +866,7 @@ function enable_mapr_services()
 	fi
 }
 
-function start_mapr_services()
+function start_mapr_services() 
 {
 	echo "Starting MapR services" >> $LOG
 
@@ -849,16 +880,20 @@ function start_mapr_services()
 		# This is as logical a place as any to wait for HDFS to
 		# come on line
 	HDFS_ONLINE=0
-	echo "Waiting for hadoop file system to come on line" >> $LOG
+	HDFS_MAX_WAIT=600
+	echo "Waiting for hadoop file system to come on line" | tee -a $LOG
 	i=0
-	while [ $i -lt 600 ]
+	while [ $i -lt $HDFS_MAX_WAIT ] 
 	do
-		hadoop fs -stat /
+		hadoop fs -stat /  2> /dev/null
 		if [ $? -eq 0 ] ; then
-			echo " ... success !!!" >> $LOG
+			curTime=`date`
+			echo " ... success at $curTime !!!" | tee -a $LOG
 			HDFS_ONLINE=1
 			i=9999
 			break
+		else
+			echo " ... timeout in $[HDFS_MAX_WAIT - $i] seconds ($THIS_HOST)"
 		fi
 
 		sleep 3
@@ -871,18 +906,85 @@ function start_mapr_services()
 	fi
 }
 
-# Enable FullControl for MAPR_USER and install license if we've been
-# given one.
-function finalize_mapr_cluster()
+# Look to the cluster for shared ssh keys.  This function depends
+# on the cluster being up and happy.  Don't worry about errors
+# here, this is just a helper function
+function retrieve_ssh_keys() 
 {
+	echo "Retrieving ssh keys for other cluster nodes" >> $LOG
+
+	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
+	clusterKeyDir=/cluster-info/keys
+
+	hadoop fs -stat ${clusterKeyDir}
+	[ $? -ne 0 ] && return 0
+
+	kdir=$clusterKeyDir
+		
+		# Copy root keys FIRST ... since the MapR user keys are 
+		# more important (and we want to give more time)
+	akFile=/root/.ssh/authorized_keys
+	for kf in `hadoop fs -ls ${kdir} | grep ${kdir} | grep _root | awk '{print $NF}' | sed "s_${kdir}/__g"`
+	do
+		echo "  found $kf"
+		if [ ! -f /root/.ssh/$kf ] ; then
+			hadoop fs -get ${kdir}/${kf} /root/.ssh/$kf
+			cat /root/.ssh/$kf >> ${akFile}
+		fi
+	done
+
+	akFile=${MAPR_USER_DIR}/.ssh/authorized_keys
+	for kf in `hadoop fs -ls ${kdir} | grep ${kdir} | grep _${MAPR_USER} | awk '{print $NF}' | sed "s_${kdir}/__g"`
+	do
+		echo "  found $kf"
+		if [ ! -f ${MAPR_USER_DIR}/.ssh/$kf ] ; then
+			hadoop fs -get ${kdir}/${kf} ${MAPR_USER_DIR}/.ssh/$kf
+			cat ${MAPR_USER_DIR}/.ssh/$kf >> ${akFile}
+			chown --reference=${MAPR_USER_DIR}/.bashrc \
+				${MAPR_USER_DIR}/.ssh/$kf ${akFile}
+		fi
+	done
+}
+
+# Enable FullControl for MAPR_USER and install license if we've been
+# given one.  When this function is run, we KNOW that the cluster
+# is up and running (we have access to the distributed file system)
+function finalize_mapr_cluster() 
+{
+	echo "Entering finalize_mapr_cluster" >> $LOG
+
 	which maprcli  &> /dev/null
 	if [ $? -ne 0 ] ; then
 		echo "maprcli command not found" >> $LOG
 		echo "This is typical on a client-only install" >> $LOG
 		return
 	fi
-
+																
 	c maprcli acl edit -type cluster -user ${MAPR_USER}:fc
+
+		# Archive the SSH keys into the cluster; we'll pull 
+		# them down later.  When all nodes are spinning up at the
+		# same time, this 'mostly' works to distribute keys ...
+		# since everyone waited for the CLDB to come on line.
+		#
+		# Root keys for nodes 0 and 1 are distributed; MapR keys
+		# for node 0 and all webserver nodes are distributed
+	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
+	clusterKeyDir=/cluster-info/keys
+	rootKeyFile=/root/.ssh/id_rsa.pub
+	maprKeyFile=${MAPR_USER_DIR}/.ssh/id_rsa.pub
+
+	if [ ${AMI_LAUNCH_INDEX:-2} -le 1  -a  -f ${rootKeyFile} ] ; then 
+		hadoop fs -put $rootKeyFile \
+		  $clusterKeyDir/id_rsa_root.${AMI_LAUNCH_INDEX}
+	fi
+	if [ -f ${maprKeyFile} ] ; then
+		if [ -${AMI_LAUNCH_INDEX:-1} -eq 0  -o  -f $MAPR_HOME/roles/webserver ]
+		then
+			hadoop fs -put $maprKeyFile \
+			  $clusterKeyDir/id_rsa_${MAPR_USER}.${AMI_LAUNCH_INDEX}
+		fi 
+	fi
 
 	license_installed=0
 	if [ -n "${MAPR_LICENSE_FILE:-}"  -a  -f "${MAPR_LICENSE_FILE}" ] ; then
@@ -892,7 +994,7 @@ function finalize_mapr_cluster()
 			[ $? -eq 0 ] && license_installed=1
 		done
 
-		if [ $license_installed -eq 0 ] ; then
+		if [ $license_installed -eq 0 ] ; then 
 			echo "maprcli license add -license $MAPR_LICENSE_FILE -is_file true" >> $LOG
 			maprcli license add -license $MAPR_LICENSE_FILE -is_file true >> $LOG
 			[ $? -eq 0 ] && license_installed=1
@@ -912,11 +1014,11 @@ function finalize_mapr_cluster()
 
 #
 # Disable starting of MAPR, and clean out the ID's that will be intialized
-# with the full install.
+# with the full install. 
 #	NOTE: the instantiation process from an image generated via
 #	this script MUST recreate the hostid and hostname files
 #
-function deconfigure_mapr()
+function deconfigure_mapr() 
 {
 	c mv -f $MAPR_HOME/hostid    $MAPR_HOME/conf/hostid.image
 	c mv -f $MAPR_HOME/hostname  $MAPR_HOME/conf/hostname.image
@@ -968,7 +1070,7 @@ passwdEOF
 	su $MAPR_USER -c "cp -p ~${MAPR_USER}/.ssh/id_rsa ~${MAPR_USER}/.ssh/id_launch"
 	su $MAPR_USER -c "cp -p ~${MAPR_USER}/.ssh/id_rsa.pub ~${MAPR_USER}/.ssh/authorized_keys"
 	su $MAPR_USER -c "chmod 600 ~${MAPR_USER}/.ssh/authorized_keys"
-
+		
 		# And copy the AWS key-pair into place ... which will
 		# enable simple ssh commands from the launcher
 	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
@@ -987,7 +1089,7 @@ export CDPATH
 # PATH updates based on settings in MapR env file
 MAPR_HOME=${MAPR_HOME:-/opt/mapr}
 MAPR_ENV=\${MAPR_HOME}/conf/env.sh
-[ -f \${MAPR_ENV} ] && . \${MAPR_ENV}
+[ -f \${MAPR_ENV} ] && . \${MAPR_ENV} 
 [ -n "\${JAVA_HOME}:-" ] && PATH=\$PATH:\$JAVA_HOME/bin
 [ -n "\${MAPR_HOME}:-" ] && PATH=\$PATH:\$MAPR_HOME/bin
 
@@ -1000,7 +1102,7 @@ EOF_bashrc
 
 function update_root_user() {
   echo "Updating root user" >> $LOG
-
+  
     cat >> /root/.bashrc << EOF_bashrc
 
 CDPATH=.:$HOME
@@ -1010,13 +1112,15 @@ set -o vi
 
 EOF_bashrc
 
-  if which dpkg &> /dev/null; then
-  	sed -i -e "s/^.*ssh-rsa /ssh-rsa /g" /root/.ssh/authorized_keys
-  fi
+	# Amazon shoves our key into the root users authorized_keys
+	# file, but disables it explicitly.  This logic removes those
+	# constraints (provided our key is an rsa key; you might want
+	# to expand this to support dsa keys as well.
+  sed -i -e "s/^.*ssh-rsa /ssh-rsa /g" /root/.ssh/authorized_keys
 
   ssh-keygen -q -t rsa -P "" -f /root/.ssh/id_rsa
 
-  # We could take this opportunity to copy the public key of
+  # We could take this opportunity to copy the public key of 
   # the mapr user into root's authorized key file ... but let's not for now
   return 0
 }
@@ -1026,13 +1130,15 @@ function setup_mapr_repo_deb() {
     MAPR_PKG="http://package.mapr.com/releases/v${MAPR_VERSION}/ubuntu"
     MAPR_ECO="http://package.mapr.com/releases/ecosystem/ubuntu"
 
-    [ -f $MAPR_REPO_FILE ] && return ;
-
-    echo Setting up repos in $MAPR_REPO_FILE
-    cat > $MAPR_REPO_FILE << EOF_ubuntu
+   	echo Setting up repos in $MAPR_REPO_FILE
+    if [ ! -f $MAPR_REPO_FILE ] ; then
+    	cat > $MAPR_REPO_FILE << EOF_ubuntu
 deb $MAPR_PKG mapr optional
 deb $MAPR_ECO binary/
 EOF_ubuntu
+	else
+  		sed -i "s|/releases/v.*/|/releases/v${MAPR_VERSION}/|" $MAPR_REPO_FILE
+	fi
 
     apt-get update
 }
@@ -1042,13 +1148,18 @@ function setup_mapr_repo_rpm() {
     MAPR_PKG="http://package.mapr.com/releases/v${MAPR_VERSION}/redhat"
     MAPR_ECO="http://package.mapr.com/releases/ecosystem/redhat"
 
-    [ -f $MAPR_REPO_FILE ] && return ;
+    if [ ! -f $MAPR_REPO_FILE ] ; then
+  		sed -i "s|/releases/v.*/|/releases/v${MAPR_VERSION}/|" $MAPR_REPO_FILE
+    	yum makecache
+		return 
+	fi
 
     echo Setting up repos in $MAPR_REPO_FILE
     cat > $MAPR_REPO_FILE << EOF_redhat
 [MapR]
-name=MapR Version $MAPR_VERSION media
+name=MapR Core Components
 baseurl=$MAPR_PKG
+${MAPR_PKG//package.mapr.com/archive.mapr.com}
 enabled=1
 gpgcheck=0
 protected=1
@@ -1097,9 +1208,14 @@ function do_initial_install()
 	return $?
 }
 
-function main()
+function main() 
 {
 	echo "$0 script started at "`date` >> $LOG
+
+	if [ `id -u` -ne 0 ] ; then
+		echo "	ERROR: script must be run as root" >> $LOG
+		exit 1
+	fi
 
 	muser=`id -un $MAPR_USER 2> /dev/null`
 	if [ $? -ne 0 ] ; then
@@ -1110,7 +1226,7 @@ function main()
 			exit 1
 		fi
 
-			# As a last act, copy this script into ~${MAPR_HOME}
+			# As a last act, copy this script into ~${MAPR_HOME} 
 			# for later use when we actually spin-up the node
 		MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
 		cp $0 $MAPR_USER_DIR/launch-mapr-instance.sh
@@ -1126,7 +1242,7 @@ function main()
 		# Bail out here if we don't have a MAPR_USER configured
 	[ `id -un $MAPR_USER` != "${MAPR_USER}" ] && return 1
 
-		# Look for the parameter file that will have the
+		# Look for the parameter file that will have the 
 		# variables necessary to complete the installation
 	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
 	MAPR_PARM_FILE=$MAPR_USER_DIR/mapr.parm
@@ -1137,10 +1253,16 @@ function main()
 		# and MAPR_HOME that we should probably check for overrides here.
 	[ -r /etc/profile.d/javahome.sh ] &&  . /etc/profile.d/javahome.sh
 	. $MAPR_PARM_FILE
+		
 	if [ -z "${cluster}" -o  -z "${zknodes}"  -o  -z "${cldbnodes}" ] ; then
 	    echo "Insufficient specification for MapR cluster ... terminating script" >> $LOG
 		exit 1
 	fi
+
+		# The parameters MAY have given us a new MAPR_VERSION 
+		# setting (in the case where the meta-data was not available).
+		# Update the repo specification appropriately.
+	setup_mapr_repo
 
 		# If this instance came from an image with MapR software
 		# pre-installed, we'll need to regenerate the ID files AFTER
@@ -1161,7 +1283,13 @@ function main()
 
 	provision_mapr_disks
 
-	enable_mapr_services
+		# Most of the time in Amazon we DO NOT want to
+		# auto-start ... so we'll control that here.
+	if [ -z "${AMI_IMAGE}" ] ; then
+		enable_mapr_services
+	else
+		disable_mapr_services
+	fi
 
 	resolve_zknodes
 	if [ $? -eq 0 ] ; then
@@ -1173,6 +1301,8 @@ function main()
 		configure_mapr_nfs
 
 		create_metrics_db
+
+		retrieve_ssh_keys
 	fi
 
 	echo "$0 script completed at "`date` >> $LOG
