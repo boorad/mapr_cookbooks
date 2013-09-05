@@ -1148,8 +1148,9 @@ function setup_mapr_repo_rpm() {
     MAPR_PKG="http://package.mapr.com/releases/v${MAPR_VERSION}/redhat"
     MAPR_ECO="http://package.mapr.com/releases/ecosystem/redhat"
 
-    if [ ! -f $MAPR_REPO_FILE ] ; then
+    if [ -f $MAPR_REPO_FILE ] ; then
   		sed -i "s|/releases/v.*/|/releases/v${MAPR_VERSION}/|" $MAPR_REPO_FILE
+    	yum clean all
     	yum makecache
 		return 
 	fi
@@ -1186,7 +1187,8 @@ EOF_redhat
     wget -O $EPEL_RPM http://download.fedoraproject.org/pub/$EPEL_LOC
     [ $? -eq 0 ] && rpm --quiet -i $EPEL_RPM
 
-    yum makecache
+	yum clean all
+	yum makecache
 }
 
 function setup_mapr_repo() {
