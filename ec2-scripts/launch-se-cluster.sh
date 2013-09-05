@@ -348,6 +348,8 @@ wait_for_launch_complete() {
 			mapr_user_found=$[mapr_user_found+1]
 		done
 	done
+
+	echo "" 
 }
 
 # In VPC configs, we need to allocate an IP address
@@ -875,8 +877,8 @@ echo "Ready to configure MapR software with"
 grep -v ^MAPR_PACKAGES  $MAPR_PARAM_FILE
 
 echo ""
-echo "Proceed {y/N} ? "
-read YoN
+# echo "Proceed {y/N} ? "
+# read YoN
 if [ -z "${YoN:-}"  -o  -n "${YoN%[yY]*}" ] ; then
 	echo ""
 	echo " ... aborting installation; be sure to delete instances "
