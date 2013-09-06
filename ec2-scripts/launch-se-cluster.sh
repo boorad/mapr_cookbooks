@@ -583,9 +583,16 @@ update_security_group() {
 	fi
 
 	if [ -n "${sg}" ] ; then
+            # Main ports for web services
 		for p in 8080 8443 7221 9001 50030 50060 ; do
 			ec2-authorize $sg --region $region -P tcp -p $p -s 0.0.0.0/0 &> /dev/null
 		done
+
+            # NFS ports 
+		for p in 111 2049 ; do
+			ec2-authorize $sg --region $region -P tcp -p $p -s 0.0.0.0/0 &> /dev/null
+		done
+		ec2-authorize $sg --region $region -P udp -p 111 -s 0.0.0.0/0 &> /dev/null
 	fi
 
 }
