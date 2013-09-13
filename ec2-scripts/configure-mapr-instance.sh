@@ -1,7 +1,7 @@
 #! /bin/bash
 #
 #   $File: configure-mapr-instance.sh $
-#   $Date: Wed Aug 28 09:52:34 2013 -0700 $
+#   $Date: Fri Sep 13 09:30:20 2013 -0700 $
 #   $Author: dtucker $
 #
 # Script to be executed on top of a base MapR image ... an
@@ -1274,11 +1274,19 @@ function main()
 	install_mapr_packages
 	[ "${REGEN_MAPR_HOSTID:-}" = "yes" ] && regenerate_mapr_hostid
 
+	[ -n "${AMI_IMAGE}" ] && VMARG="--isvm"
+	if [ ${MAPR_VERSION%%.*} -ge 3 ] ; then
+		if [ ${MAPR_VERSION} -ne "3.0.0-GA" ] ; then
+			echo $MAPR_PACKAGES | grep -q hbase
+			[ $? -eq 0 ] && M7ARG="-M7"
+		fi
+	fi
+
 		# Waiting for the nodes at this point SHOULD be unnecessary,
 		# since we had to have the node alive to re-spawn this part
 		# of the script.  So we can just do the configuration
 	c $MAPR_HOME/server/configure.sh -N $cluster -C $cldbnodes -Z $zknodes \
-	    -u $MAPR_USER -g $MAPR_GROUP --isvm
+	    -u $MAPR_USER -g $MAPR_GROUP $M7ARG $VMARG
 
 	configure_mapr_metrics
 	configure_mapr_services
