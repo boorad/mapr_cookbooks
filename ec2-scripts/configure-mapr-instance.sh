@@ -38,7 +38,7 @@ AMI_IMAGE=$(curl -f $murl_top/ami-id)    # name of initial image loaded here
 AMI_LAUNCH_INDEX=$(curl -f $murl_top/ami-launch-index) 
 
 MAPR_VERSION=$(curl -f $murl_attr/maprversion)    # mapr version, eg. 1.2.3
-MAPR_VERSION=${MAPR_VERSION:-2.1.2}
+MAPR_VERSION=${MAPR_VERSION:-3.0.1}
 
 # A comma separated list of packages (without the "mapr-" prefix)
 # to be installed.   This script assumes that NONE of them have 

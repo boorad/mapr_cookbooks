@@ -23,7 +23,7 @@ murl_top=http://169.254.169.254/latest/meta-data
 #	Long term, we should handle reconfiguration of
 #	these values at cluster launch ... but it's difficult
 #	without a clean way of passing meta-data to the script
-MAPR_VERSION=${MAPR_VERSION:-2.1.2}
+MAPR_VERSION=${MAPR_VERSION:-3.0.1}
 MAPR_HOME=/opt/mapr
 MAPR_UID=${MAPR_UID:-"2000"}
 MAPR_USER=${MAPR_USER:-mapr}
