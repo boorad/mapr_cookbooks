@@ -58,6 +58,8 @@ MAPR_GROUP=`id -gn ${MAPR_USER}`
 MAPR_PASSWD=${MAPR_PASSWD:-MapR}
 MAPR_METRICS_DEFAULT=metrics
 
+# A few other directories for our distribution
+MAPR_HADOOP_DIR=${MAPR_HOME}/hadoop/hadoop-0.20.2
 
 LOG=/tmp/configure-mapr.log
 
@@ -618,6 +620,32 @@ configure_mapr_services() {
 
 }
 
+# Simple script to add useful parameters to the 
+# Hadoop *.xml configuration files.   This should be done
+# as a separate Python or Perl script to better handle
+# the xml format !!!
+#
+update_site_config() {
+	echo "Updating site configuration files" >> $LOG
+
+	HADOOP_CONF_DIR=${MAPR_HADOOP_DIR}/conf
+	MAPRED_CONF_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+	CORE_CONF_FILE=${HADOOP_CONF_DIR}/core-site.xml
+
+		# core-site changes need to include namespace mappings
+    sudo sed -i '/^<\/configuration>/d' ${CORE_CONF_FILE}
+
+	echo "
+<property>
+  <name>hbase.table.namespace.mappings</name>
+  <value>*:/user/\${user.name}</value>
+</property>" | sudo tee -a ${CORE_CONF_FILE}
+
+	echo "" | sudo tee -a ${CORE_CONF_FILE}
+	echo '</configuration>' | sudo tee -a ${CORE_CONF_FILE}
+
+}
+
 #
 #  Wait until DNS can find all the masters
 #	Should put a timeout ont this ... it's really not well designed
@@ -754,13 +782,10 @@ create_metrics_db() {
 #		MYSQL_DATA_DIR=/var/mapr/mysql
 		MYSQL_DATA_DIR=/mysql
 
-		dtKey="cldb.default.volume.topology"
-		defTopology=`maprcli config load -keys $dtKey | grep -v $dtKey`
-
 			# Create the volume and set ownership
 			# We probably don't need both steps ... but just in case
 		maprcli volume create -name mapr.mysql -user "mysql:fc root:fc" \
-		  -path $MYSQL_DATA_DIR -createparent true -topology ${defTopology:-/} 
+		  -path $MYSQL_DATA_DIR -createparent true 
 		maprcli acl edit -type volume -name mapr.mysql -user mysql:fc
 
 		if [ $? -eq 0 ] ; then
@@ -975,12 +1000,14 @@ function finalize_mapr_cluster()
 	maprKeyFile=${MAPR_USER_DIR}/.ssh/id_rsa.pub
 
 	if [ ${AMI_LAUNCH_INDEX:-2} -le 1  -a  -f ${rootKeyFile} ] ; then 
+		echo "Pushing $rootKeyFile to $clusterKeyDir" >> $LOG
 		hadoop fs -put $rootKeyFile \
 		  $clusterKeyDir/id_rsa_root.${AMI_LAUNCH_INDEX}
 	fi
 	if [ -f ${maprKeyFile} ] ; then
 		if [ -${AMI_LAUNCH_INDEX:-1} -eq 0  -o  -f $MAPR_HOME/roles/webserver ]
 		then
+			echo "Pushing $maprKeyFile to $clusterKeyDir" >> $LOG
 			hadoop fs -put $maprKeyFile \
 			  $clusterKeyDir/id_rsa_${MAPR_USER}.${AMI_LAUNCH_INDEX}
 		fi 
@@ -1010,6 +1037,22 @@ function finalize_mapr_cluster()
 
 	MAPR_LICENSE_INSTALLED="$license_installed"
 	export MAPR_LICENSE_INSTALLED
+
+		# Last, but not least, create a /user/${MAPR_USER} directory
+		# in the cluster (this is the default tables directory for 
+		# M7 deployments)
+	if [ ${AMI_LAUNCH_INDEX:-1} -eq 0 ] ; then 
+		echo "Creating /user/${MAPR_USER} in configured cluster" >> $LOG
+
+		maprcli volume create \
+			-name ${MAPR_USER}_home -user ${MAPR_USER}:fc \
+			-path /user/$MAPR_USER -createparent true \
+			-replicationtype low_latency
+	
+		if [ $? -ne 0 ] ; then
+			echo "Error: unable to create /user directory for $MAPR_USER" >> $LOG
+		fi
+	fi
 }
 
 #
@@ -1276,7 +1319,7 @@ function main()
 
 	[ -n "${AMI_IMAGE}" ] && VMARG="--isvm"
 	if [ ${MAPR_VERSION%%.*} -ge 3 ] ; then
-		if [ ${MAPR_VERSION} -ne "3.0.0-GA" ] ; then
+		if [ "${MAPR_VERSION}" != "3.0.0-GA" ] ; then
 			echo $MAPR_PACKAGES | grep -q hbase
 			[ $? -eq 0 ] && M7ARG="-M7"
 		fi
@@ -1290,6 +1333,7 @@ function main()
 
 	configure_mapr_metrics
 	configure_mapr_services
+	update_site_config
 
 	provision_mapr_disks
 
