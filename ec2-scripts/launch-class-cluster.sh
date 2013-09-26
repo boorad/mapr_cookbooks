@@ -1,10 +1,10 @@
 #!/bin/bash
 #
 #   $File: launch-class-cluster.sh $
-#   $Date: Tue Aug 06 14:41:57 2013 -0700 $
+#   $Date: Thu Aug 29 11:23:20 2013 -0700 $
 #   $Author: dtucker $
 #
-#  Script to launch a MapR M5 cluster in the Amazon Cloud for use
+#  Script to launch a MapR M5 cluster in the Amazon Cloud for use 
 #	in sanctioned training courses.  Cluster configuration defined
 #	in simple file of the form
 #		${NODE_NAME_ROOT}<index>:<packages>
@@ -21,31 +21,31 @@
 #	ec2-run-instances tool is in the path
 #	AWS/EC2 env variables set for target AWS account
 #		EC2_HOME, AWS_USER, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+#	The default security group for the region MUST have ssh access enabled
 #
 #	TBD : Be smarter about licensing (maybe in the config file)
 #
 # Things to remember:
-#	- node numbering in config file should start at '0'
+#	- node numbering in config file should start at '0' 
 #	- AMI's are region-specific; verify that the AMI exists in target region
-#	- the 'key name' in AWS should match the file name specified here
+#	- the 'key name' in AWS should match the file name specified here 
 #
 #
 # EXAMPLES
 #		# With Vanilla CentOS AMI
 #	 ./launch-class-cluster.sh \
 #		--cluster dbt \
-#		--mapr-version 2.1.3 \
+#		--mapr-version 2.1.3.2 \
 #		--config-file class/5node.lst \
-#		--region us-west-2
+#		--region us-west-2 \			# eu-west-1
 #		--key-file ~/.ssh/tucker-eng \
-#		--image ami-72ce4642 \
+#		--image ami-72ce4642 \			# ami-a93133dd
 #		--image-su ec2-user  \
 #		--instance-type m1.large \
 #		--nametag foobar \
-#               --subnet-id 1234 \
 #		--days-to-live 1
 #
-#		# With MapR Custom AMI
+#		# With MapR Custom AMI from MapR training
 #	 ./launch-class-cluster.sh \
 #		--cluster train \
 #		--mapr-version 2.1.3 \
@@ -57,14 +57,13 @@
 #		--instance-type m1.xlarge \
 #		--data-disks 2 \
 #		--nametag foobar \
-#               --subnet_id 1234 \
 #		--days-to-live 1
 #
 
 THIS_SCRIPT=$0
 
 # The LAUNCH script gets passed to the instances as user-data and
-# then the CONFIG script is later invoked again to finish the
+# then the CONFIG script is later invoked again to finish the 
 # configuration.
 #	BOTH SCRIPTS should be here in the local directory.
 #
@@ -86,13 +85,12 @@ usage() {
        --image <AMI name>
        --image-su <sudo-user for image>
        --instance-type <instance-type>
-	   --key-file <ec2-private-key-file>
+       --key-file <ec2-private-key-file>
        [ --zone ec2-availability-zone ]
-	   [ --license-file <license to be installed> ]
-	   [ --data-disks <# of ephemeral disks to FORCE into the AMI> ]
-	   [ --nametag <uniquifying cluster tag> ]
-           [ --subnet_id <id of [virtual private cloud] subnet> ]
-	   [ --days-to-live <max lifetime> ]
+       [ --license-file <license to be installed> ]
+       [ --data-disks <# of ephemeral disks to FORCE into the AMI> ]
+       [ --nametag <uniquifying cluster tag> ]
+       [ --days-to-live <max lifetime> ]
    "
   echo ""
   echo "EXAMPLES"
@@ -109,12 +107,19 @@ then
 	exit 1
 fi
 
-if [ -z "${EC2_HOME}" ]
-then
+if [ -z "${EC2_HOME}" ] ; then
 	echo "Error: EC2_HOME environment variable missing"
 	echo "    Please set EC2_HOME to the location of the EC2 utilities"
 	echo "    before using this script"
 	exit 1
+elif [ ! -d "${EC2_HOME}"  -o  ! -x ${EC2_HOME}/bin/ec2-run-instances ] ; then
+	echo "Error: EC2_HOME environment variable ($EC2_HOME) does not contain ec2 utilities"
+fi
+
+#	Make sure that the ec2 utilities are in the path
+which ec2-run-instances &> /dev/null
+if [ $? -ne 0 ] ; then
+	PATH=$PATH:$EC2_HOME/bin
 fi
 
 if [ -z "${EC2_DEFAULT_ARGS}" ] ; then
@@ -138,7 +143,6 @@ do
   --data-disks)   dataDisks=$2 ;;
   --license-file) licenseFile=$2 ;;
   --nametag)      nametag=$2 ;;
-  --subnet_id)    subnet_id=$2 ;;
   --days-to-live) daysToLive=$2 ;;
   *)
      echo "**** Bad argument: " $1
@@ -162,10 +166,9 @@ if [ ${maprversion%%.*} -le 2 ] ; then
 else
     licenseFile=${licenseFile:-"$HOME/Documents/MapR/licenses/LatestDemoLicense-M7.txt"}
 fi
-subnet_id=${subnet_id:-""}
 
 # Don't deal with licensing if the file doesn't exist
-[ ! -r ${licenseFile} ] && licenseFile=""
+[ ! -r ${licenseFile} ] && licenseFile="" 
 
 if [ -n "${nametag}" ] ; then
 	tagSuffix="-${nametag}"
@@ -211,14 +214,14 @@ if [ ! -r "${ec2keyfile}" -a  ! -r "${ec2keyfile}.pem" ] ; then
 fi
 
 kp=`basename ${ec2keyfile}`
-ec2-describe-keypairs --region $region 2> /dev/null  | grep -q -w $kp
+ec2-describe-keypairs --region $region 2> /dev/null  | grep -q -w $kp 
 if [ $? -ne 0 ] ; then
 	echo "Error: AWS KeyPair ($kp) for keyfile not found in region $region"
 	exit 1
 fi
 
-# We'll eventually  have known images for the different versions,
-# so we can pick it if users have specified the version.  This needs
+# We'll eventually  have known images for the different versions, 
+# so we can pick it if users have specified the version.  This needs 
 # to be adjusted to run for ALL potential regions
 #	TBD : we should probably check for the existance of the image
 #
@@ -226,7 +229,7 @@ fi
 if [ -n "${image:-}" ] ; then
 	maprimage=$image
 else
-	case $maprversion in
+	case $maprversion in 
 		*)
 			echo "No image available for MapR version $maprversion; sorry"
 			echo "Please specify a default AMI to use for this deployment"
@@ -235,21 +238,12 @@ else
 	esac
 fi
 
-ec2-describe-images --region $region $maprimage &> /dev/null
+ec2-describe-images --region $region $maprimage &> /dev/null  
 if [ $? -ne 0 ] ; then
 	echo "Error: AWS Image ($maprimage) not found in region $region"
 	exit 1
 fi
 
-#
-# Virtual Private Cloud subnet
-#
-if [ -z $subnet_id ] ; then
-    echo "no subnet provided, so not launching in VPC"
-    ### TODO: ec2-create-vpc and get subnet id if a "-1" is provided
-else
-    subnet=$subnet_id
-fi
 
 # TBD
 #	Create a security group for the cluster (eg JClouds)
@@ -269,7 +263,6 @@ echo "	zone ${zone:-'unset'}"
 echo "	dataDisks ${dataDisks:-unset}"
 echo "	licenseFile ${licenseFile:-unset}"
 echo "	nametag ${nametag:-unset}"
-echo "	subnet ${subnet:-unset}"
 echo "	daysToLive ${daysToLive:-unset}"
 echo "----- "
 echo "Proceed {y/N} ? "
@@ -279,14 +272,14 @@ if [ -z "${YoN:-}"  -o  -n "${YoN%[yY]*}" ] ; then
 fi
 
 echo ""
-echo "Proceeding with MapR cluster deployment ..."
+echo "Proceeding with MapR cluster deployment ..." 
 
 # MAJOR KLUDGE
 #	The launch script creates the initial repository specification
 #	Because we can't pass in meta data AND a cloud-init script,
 #	the MapR software version from this script will not be known
 #	as the instances are spun up UNLESS we update the launch
-#	script RIGHT NOW.  We know the "default setting" for
+#	script RIGHT NOW.  We know the "default setting" for 
 #	the variable is in the form
 #		MAPR_VERSION=${MAPR_VERSION:-3.0.0-GA}
 #	in the script.  Remember, sed is your friend :)
@@ -332,7 +325,6 @@ ec2-run-instances $maprimage \
 	  --user-data-file $MAPR_LAUNCH_SCRIPT \
 	  --instance-type $instancetype \
 	  ${AMI_DISK_CONFIG:-} \
-          --subnet $subnet \
 	  --region $region \
 	  --availability-zone ${zone:-${region}b} | tee eri.out
 
@@ -365,29 +357,29 @@ do
 	fi
 
 	if [ -n "${hosts_pub:-}" ] ; then hosts_pub=$hosts_pub','$pub_name
-	else hosts_pub=$pub_name
+	else hosts_pub=$pub_name 
 	fi
 
 	if [ -n "${addrs_pub:-}" ] ; then addrs_pub=$addrs_pub','$pub_ip
-	else addrs_pub=$pub_ip
+	else addrs_pub=$pub_ip 
 	fi
 
 	if [ -n "${addrs_priv:-}" ] ; then addrs_priv=$addrs_priv','$priv_ip
-	else addrs_priv=$priv_ip
+	else addrs_priv=$priv_ip 
 	fi
 
 	if [ -n "${mlaunch_indexes:-}" ] ; then mlaunch_indexes=$mlaunch_indexes','$ami_index
-	else mlaunch_indexes=$ami_index
+	else mlaunch_indexes=$ami_index 
 	fi
 
 		# Keep track of private name of first master node; That will
-		# be our metrics and NFS server for inside the cluster
+		# be our metrics and NFS server for inside the cluster 
 		# we can make this smarter if we need to later
 	if [ $ami_index = "0" ] ; then
 		first_master=$hn
 		first_master_pub=$pub_name
 	fi
-
+		
 done < edi.out
 
 #	Debug output ... not necessary most of the time
@@ -417,7 +409,7 @@ done < edi.out
 zknodes=`grep ^$NODE_NAME_ROOT $configFile | grep zookeeper | cut -f1 -d:`
 for zkh in `echo $zknodes` ; do
 	zkidx=${zkh#${NODE_NAME_ROOT}}
-
+	
 		# We can do either hostname (without domain) or IP
 	hn=`grep -e " $zkidx " edi.out | awk '{print $2}'`
 	hn=${hn%%.*}
@@ -430,7 +422,7 @@ done
 cldbnodes=`grep ^$NODE_NAME_ROOT $configFile | grep cldb | cut -f1 -d:`
 for cldbh in `echo $cldbnodes` ; do
 	cldbidx=${cldbh#${NODE_NAME_ROOT}}
-
+	
 		# We can do either hostname (without domain) or IP
 	hn=`grep -e " $cldbidx " edi.out | awk '{print $2}'`
 	hn=${hn%%.*}
@@ -463,7 +455,7 @@ echo "MAPR_PACKAGES=core"                 >> $MAPR_PARAM_FILE
 echo "cluster=$cluster"                   >> $MAPR_PARAM_FILE
 echo "zknodes=$zkhosts_priv"              >> $MAPR_PARAM_FILE
 echo "cldbnodes=$cldbhosts_priv"          >> $MAPR_PARAM_FILE
-if [ -n "$MAPR_METRICS_SERVER:-}" ] ; then
+if [ -n "$MAPR_METRICS_SERVER:-}" ] ; then 
 	echo "MAPR_METRICS_SERVER=$MAPR_METRICS_SERVER"  >> $MAPR_PARAM_FILE
 	echo "MAPR_METRICS_DB=metrics"                   >> $MAPR_PARAM_FILE
 fi
@@ -486,7 +478,7 @@ else
 	MY_SSH_KEY=$HOME/.ssh/${ec2keyfile}.pem
 fi
 if [ ! -r $MY_SSH_KEY ] ; then
-	echo "Cannot continue configuration"
+	echo "Cannot continue configuration" 
 	echo "SSH_KEY {$MY_SSH_KEY} not found"
 	exit 1
 fi
@@ -507,17 +499,17 @@ done
 #	Again, start with 0 since the AMI indexes start with that
 #	The Training group likes the nametag FIRST; if there
 #	is no nametag, put the cluster name FIRST.
-let mindex=0
-for mstr in $instances
+idx=0
+for inst in $instances
 do
-#	mtag="${NODE_NAME_ROOT}${mindex}-${cluster%%.*}${tagSuffix}"
+#	mtag="${NODE_NAME_ROOT}${idx}-${cluster%%.*}${tagSuffix}"
 	if [ -n "${nametag}" ] ; then
-		mtag="${tagSuffix#-}-${cluster%%.*}-${NODE_NAME_ROOT}${mindex}"
+		mtag="${tagSuffix#-}-${cluster%%.*}-${NODE_NAME_ROOT}${idx}"
 	else
-		mtag="${cluster%%.*}${tagSuffix}-${NODE_NAME_ROOT}${mindex}"
+		mtag="${cluster%%.*}${tagSuffix}-${NODE_NAME_ROOT}${idx}"
 	fi
-	ec2-create-tags --region $region $mstr --tag Name=$mtag
-	let mindex=$mindex+1
+	ec2-create-tags --region $region $inst --tag Name=$mtag
+	idx=$[idx+1]
 done
 
 
@@ -525,18 +517,18 @@ done
 # allows password authentication).  The BatchMode flag forces that.
 MY_SSH_OPTS="-i $MY_SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes"
 
-echo "Waiting for mapr user to become configured on all nodes"
+echo "Waiting for mapr user to become configured on all nodes" 
 mapr_user_found=0
 while [ $mapr_user_found -ne $nhosts ] ; do
 	echo "$mapr_user_found systems found with MAPR_USER; waiting for $nhosts"
 	sleep $PTIME
-	let mapr_user_found=0
+	mapr_user_found=0
 	for node in `echo ${hosts_pub//,/ }`
 	do
 		ssh $MY_SSH_OPTS $MAPR_USER@${node} \
-			-n "ls ~${MAPR_USER}/${MAPR_LAUNCH_SCRIPT}" 2> /dev/null
+			-n "ls ~${MAPR_USER}/${MAPR_LAUNCH_SCRIPT}" &> /dev/null
 		[ $? -ne 0 ] && break
-		let mapr_user_found=$mapr_user_found+1
+		mapr_user_found=$[mapr_user_found+1]
 	done
 done
 
@@ -551,7 +543,7 @@ if [ -z "${YoN:-}"  -o  -n "${YoN%[yY]*}" ] ; then
  	exit 1
 fi
 
-# Need to get smarter here about a few things:
+# Need to get smarter here about a few things: 
 #	we should configure and start ZK nodes first
 #	timing: when is the instance ready for scp and ssh
 #	Ubuntu vs CentOS AMI's  (remote root access)
@@ -563,7 +555,7 @@ do
 	hpkgs=`grep "^${NODE_NAME_ROOT}${hidx}:" $configFile | cut -f2 -d:`
 	sed "s/^MAPR_PACKAGES=.*$/MAPR_PACKAGES=${hpkgs}/" $MAPR_PARAM_FILE \
 		> $host_param_file
-
+	
 	scp $MY_SSH_OPTS $MAPR_CONFIG_SCRIPT ${MAPR_USER}@${node}:
 	scp $MY_SSH_OPTS $host_param_file ${MAPR_USER}@${node}:mapr.parm
 	if [ -n "${licenseFile:-}" ] ; then
@@ -586,9 +578,9 @@ wait
 # We'll assemble a hosts file (to aid in connecting to
 # the cluster from outside.
 #
-# Additionally, we'll take this opportunity to set up
+# Additionally, we'll take this opportunity to set up 
 # the clush configuration on node 0 to access all other nodes
-# (as we do this ALL THE TIME)
+# (as we do this ALL THE TIME) 
 
 cluster_hosts_file=./hosts.${cluster%%.*}
 echo "" > $cluster_hosts_file
@@ -622,7 +614,7 @@ do
 				-n "echo 'shutdown -Py now' | sudo at now +$daysToLive days" &> /dev/null
 		fi
 	fi
-done < edi.out
+done < edi.out 
 
 echo "	(details in $cluster_hosts_file)"
 
@@ -633,14 +625,14 @@ all: $clist
 GCEOF
 
 if [ -f groups.clush ] ; then
-	scp $MY_SSH_OPTS groups.clush ${ec2user}@${nodeZero}:/tmp
+	scp $MY_SSH_OPTS groups.clush ${ec2user}@${nodeZero}:/tmp 
 
 	if [ $ec2user = "root" ] ; then
 		ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
-			-n "[ -d /etc/clustershell ] && cp /tmp/groups.clush /etc/clustershell/groups"
+			-n "[ -d /etc/clustershell ] && cp /tmp/groups.clush /etc/clustershell/groups" 
 	else
 		ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
-			-n "[ -d /etc/clustershell ] && sudo cp /tmp/groups.clush /etc/clustershell/groups"
+			-n "[ -d /etc/clustershell ] && sudo cp /tmp/groups.clush /etc/clustershell/groups" 
 	fi
 fi
 
@@ -649,19 +641,28 @@ echo "Opening MCS port in security group configuration for this cluster"
 
 # All the instances will be in the same security group ... so we just
 # do this once for the first instance in our known list.   The output
-# from ec2-authorize is pretty verbose, so we'll just swallow it.
+# from ec2-authorize is pretty verbose, so we'll just swallow it.  
 #
 # Lots of errors from describe-instance-attribute; no easy way to work
 # around them, so just try all instances in case one works.
-#	TBD : catch and report errors
+#	BIGGER PROBLEM : --group-id is broken in the interface
+#		if we don't get an answer, just look for default group and
+#		update that one.
 for inst in $instances
 do
-	sg=`ec2-describe-instance-attribute $inst --region $region --group-id 2>/dev/null | awk '{print $3}'`
-	if [ -n "${sg}" ] ; then
-		ec2-authorize $sg --region $region -P tcp -p 8443 -s 0.0.0.0/0 &> /dev/null
-		break
-	fi
+	sg=`ec2-describe-instance-attribute $inst --region $region --group-id 2>/dev/null | awk '{print $NF}'`
+	[ -n "${sg}" ] && break
 done
+
+if [ -z "${sg}" ] ; then
+	sg=`ec2-describe-group --region $region --filter="group-name=default" 2>/dev/null | grep ^GROUP | awk '{print $2}'`
+fi
+
+if [ -n "${sg}" ] ; then
+	for p in 8080 8443 7221 9001 50030 50060 ; do
+		ec2-authorize $sg --region $region -P tcp -p $p -s 0.0.0.0/0 &> /dev/null
+	done
+fi
 
 echo ""
 echo "Check /tmp/*-mapr.log files on each node to confirm proper instantiation."
@@ -673,3 +674,4 @@ do
 	hn=`grep -e " $uiidx " edi.out | awk '{print $1}'`
 	echo "	https://$hn:8443"
 done
+

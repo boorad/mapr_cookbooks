@@ -1,5 +1,8 @@
-# Single node M5 cluster
+# MapR configuration file to be used by automated
+# provisioning script.
+#
+# Single node M5 cluster 
 #
 node0:zookeeper,cldb,jobtracker,webserver,fileserver,tasktracker,nfs,metrics
-# ALTERNATIVELY
+# ALTERNATIVELY 	
 #	node1:single-node

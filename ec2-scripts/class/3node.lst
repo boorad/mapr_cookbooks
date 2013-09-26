@@ -7,11 +7,6 @@
 #	Amazon deployments, since we can map the
 #	AMI index directly to the node name 
 #
-# Sample 5-node M5 cluster (per configuration in MapR Documentation)
-#
 node0:zookeeper,cldb,fileserver,tasktracker,nfs,webserver
 node1:zookeeper,cldb,fileserver,tasktracker,nfs
-node2:zookeeper,fileserver,tasktracker,nfs,webserver
-node3:fileserver,tasktracker,nfs,jobtracker,metrics
-node4:fileserver,tasktracker,nfs,jobtracker,metrics
-
+node2:zookeeper,jobtracker,fileserver,tasktracker,nfs

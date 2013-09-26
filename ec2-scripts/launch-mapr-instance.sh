@@ -1,22 +1,12 @@
 #! /bin/bash
 #
 #   $File: launch-mapr-instance.sh $
-#   $Date: Tue Aug 06 14:12:31 2013 -0700 $
+#   $Date: Wed Aug 28 09:47:15 2013 -0700 $
 #   $Author: dtucker $
 #
-# Script to be executed on top of a newly created Linux instance
-# within a cloud environment.  The goal is to install and configure
-# MapR components.  The design is for specific packages to be passed
-# in via metadata ... but the EC2 command-line-interface does not seem
-# to allow a startup script AND user meta-data to be passed in at
-# instance startup.  Morever, there is a limit of 16K to the launch
-# script in EC2, so the size of the script is constrained
-#
-#	Workaround: so we'll plan for this script to be invoked
-# 	as part of the instance startup and another script will
-#	be invoked later for final configuration.  As a fallback,
-#	this script will do that same second step if the MAPR_USER
-#	already exists.
+# Script to be executed on top of a newly created Linux instance 
+# within a cloud environment to prepare an instance for later execution
+# of configure-mapr-instance script.
 #
 # Expectations:
 #	- Script run as root user (hence no need for permission checks)
@@ -24,11 +14,6 @@
 #	    There are so few differences, it seemed better to manage one script.
 #
 # Tested with MapR 2.0.1, 2.1.x, 3.0.x
-#
-# JAVA
-#	This script defaults to OpenJDK; it would be a simple change to
-#	enable Oracle Java ... just be sure to handle the interactive
-#	license agreement.
 #
 
 # What little meta-data Amazon passes in is available here
@@ -38,17 +23,16 @@ murl_top=http://169.254.169.254/latest/meta-data
 #	Long term, we should handle reconfiguration of
 #	these values at cluster launch ... but it's difficult
 #	without a clean way of passing meta-data to the script
-MAPR_VERSION=${MAPR_VERSION:-3.0.0-GA}
+MAPR_VERSION=${MAPR_VERSION:-3.0.1}
 MAPR_HOME=/opt/mapr
 MAPR_UID=${MAPR_UID:-"2000"}
 MAPR_USER=${MAPR_USER:-mapr}
 MAPR_PASSWD=${MAPR_PASSWD:-MapR}
 
-
 LOG=/tmp/launch-mapr.log
 
 # Extend the PATH just in case ; probably not necessary
-PATH=/sbin:/usr/sbin:$PATH
+PATH=/sbin:/usr/sbin:/usr/bin:/bin:$PATH
 
 # Helper utility to log the commands that are being run and
 # save any errors to a log file
@@ -82,7 +66,7 @@ function update_os_deb() {
 	apt-get update
 #	apt-get upgrade -y --force-yes -o Dpkg::Options::="--force-confdef,confold"
 	apt-get install -y nfs-common iputils-arping libsysfs2
-	apt-get install -y ntp
+	apt-get install -y ntp 
 	apt-get install -y unzip
 	apt-get install -y realpath
 
@@ -99,7 +83,7 @@ function update_os_rpm() {
 #	yum update -y
 	yum install -y bind-utils
 	yum install -y nfs-utils iputils libsysfs
-	yum install -y ntpd ntpdate
+	yum install -y ntpd ntpdate 
 	yum install -y unzip
 	yum install -y realpath
 
@@ -110,7 +94,7 @@ function update_os_rpm() {
 }
 
 # Make sure that NTP service is sync'ed and running
-# Key Assumption: the /etc/ntp.conf file is reasonable for the
+# Key Assumption: the /etc/ntp.conf file is reasonable for the 
 #	hosting cloud platform.   We could shove our own NTP servers into
 #	place, but that seems like a risk.
 function update_ntp_config() {
@@ -131,7 +115,7 @@ function update_ntp_config() {
 	ntpdate pool.ntp.org
 	$SERVICE_SCRIPT start
 
-		# TBD: copy in /usr/share/zoneinfo file based on
+		# TBD: copy in /usr/share/zoneinfo file based on 
 		# zone in which the instance is deployed
 	zoneInfo=$(curl -f ${murl_top}/placement/availability-zone)
 	curZone=`basename "${zoneInfo}"`
@@ -151,18 +135,22 @@ function update_ntp_config() {
 			newTZ=${curTZ}
 	esac
 
-	if [ -n "${newTZ}"  -a  -f $TZ_HOME/$newTZ  -a  "${curTZ}" != "${newTZ}" ]
+	if [ -n "${newTZ}"  -a  -f $TZ_HOME/$newTZ  -a  "${curTZ}" != "${newTZ}" ] 
 	then
 		echo "    Updating TZ to $newTZ" >> $LOG
 		cp -p $TZ_HOME/$newTZ /etc/localtime
 	fi
 }
 
-function update_ssh_config() {
-	echo "  updating SSH configuration" >> $LOG
+function update_sudo_config() {
+	echo "  updating sudo configuration" >> $LOG
 
 	# allow sudo with ssh (we'll need to later)
   sed -i 's/^Defaults .*requiretty$/# Defaults requiretty/' /etc/sudoers
+}
+
+function update_ssh_config() {
+	echo "  updating SSH configuration" >> $LOG
 
 	# allow ssh via keys (some virtual environments disable this)
   sed -i 's/#AuthorizedKeysFile/AuthorizedKeysFile/' /etc/ssh/sshd_config
@@ -191,13 +179,13 @@ function update_os() {
   fi
 
 	# raise TCP rbuf size
-  echo 4096 1048576 4194304 > /proc/sys/net/ipv4/tcp_rmem
+  echo 4096 1048576 4194304 > /proc/sys/net/ipv4/tcp_rmem  
 #  sysctl -w vm.overcommit_memory=1  # swap behavior
 
 		# SElinux gets in the way of older MapR installs (1.2)
 		# as well as MySQL (if we want a non-standard data directory)
-		#	Be sure to disable it IMMEDIATELY for the rest of this
-		#	process; the change to SELINUX_CONFIG will ensure the
+		#	Be sure to disable it IMMEDIATELY for the rest of this 
+		#	process; the change to SELINUX_CONFIG will ensure the 
 		#	change across reboots.
   SELINUX_CONFIG=/etc/selinux/config
   if [ -f $SELINUX_CONFIG ] ; then
@@ -245,7 +233,7 @@ function install_openjdk_deb() {
     echo "Installing OpenJDK packages (for deb distros)" >> $LOG
 
 	apt-get install -y x11-utils
-	apt-get install -y openjdk-7-jdk openjdk-7-doc
+	apt-get install -y openjdk-7-jdk openjdk-7-doc 
 
 	JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
 	export JAVA_HOME
@@ -255,7 +243,7 @@ function install_openjdk_deb() {
 function install_openjdk_rpm() {
     echo "Installing OpenJDK packages (for rpm distros)" >> $LOG
 
-	yum install -y java-1.7.0-openjdk java-1.7.0-openjdk-devel
+	yum install -y java-1.7.0-openjdk java-1.7.0-openjdk-devel 
 	yum install -y java-1.7.0-openjdk-javadoc
 
 	JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk.x86_64
@@ -301,7 +289,7 @@ function install_java() {
 	echo "Could not identify JAVA_HOME; will install Java ourselves" >> $LOG
   fi
 
-  let attempts=0
+  attempts=0
   while [ ${attempts} -lt 10 ] ; do
   	if which dpkg &> /dev/null; then
     	install_oraclejdk_deb
@@ -322,8 +310,8 @@ function install_java() {
 	fi
 
 	sleep 10
-	let attempts=${attempts}+1
-  done
+	attempts=$[attempts+1]
+  done 
 
   echo "!!! Java installation FAILED !!!  Node unusable !!!" >> $LOG
   return 1
@@ -353,8 +341,8 @@ function update_mapr_ssh() {
 		chown --reference=${MAPR_USER_DIR}/.ssh/id_rsa \
 			${MAPR_USER_DIR}/.ssh/authorized_keys
 	fi
-
-		# No matter what, copy the AWS key-pair into place ...
+		
+		# No matter what, copy the AWS key-pair into place ... 
 		# which will enable simple ssh commands from the launcher
 		# NOTE: we NEED this for the mechanics of cluster deployment !!!
 	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
@@ -365,6 +353,7 @@ function update_mapr_ssh() {
 			${MAPR_USER_DIR}/.ssh/authorized_keys
 		chmod 600 ${MAPR_USER_DIR}/.ssh/authorized_keys
 		chown --reference=${MAPR_USER_DIR}/.ssh/id_rsa \
+			$LAUNCHER_SSH_KEY_FILE \
 			${MAPR_USER_DIR}/.ssh/authorized_keys
 	fi
 }
@@ -408,7 +397,7 @@ export CDPATH
 # PATH updates based on settings in MapR env file
 MAPR_HOME=${MAPR_HOME:-/opt/mapr}
 MAPR_ENV=\${MAPR_HOME}/conf/env.sh
-[ -f \${MAPR_ENV} ] && . \${MAPR_ENV}
+[ -f \${MAPR_ENV} ] && . \${MAPR_ENV} 
 [ -n "\${JAVA_HOME}:-" ] && PATH=\$PATH:\$JAVA_HOME/bin
 [ -n "\${MAPR_HOME}:-" ] && PATH=\$PATH:\$MAPR_HOME/bin
 
@@ -421,7 +410,7 @@ EOF_bashrc
 
 function update_root_user() {
   echo "Updating root user" >> $LOG
-
+  
     cat >> /root/.bashrc << EOF_bashrc
 
 CDPATH=.:$HOME
@@ -431,17 +420,17 @@ set -o vi
 
 EOF_bashrc
 
-	# Amazon's Ubuntu instances disable root ssh access;
-	# we need this for our cluster
-  if which dpkg &> /dev/null; then
-  	sed -i -e "s/^.*ssh-rsa /ssh-rsa /g" /root/.ssh/authorized_keys
-  fi
+	# Amazon shoves our key into the root users authorized_keys
+	# file, but disables it explicitly.  This logic removes those
+	# constraints (provided our key is an rsa key; you might want
+	# to expand this to support dsa keys as well.
+  sed -i -e "s/^.*ssh-rsa /ssh-rsa /g" /root/.ssh/authorized_keys
 
   if [ ! -e /root/.ssh/id_rsa ] ; then
   	ssh-keygen -q -t rsa -P "" -f /root/.ssh/id_rsa
   fi
 
-  # We could take this opportunity to copy the public key of
+  # We could take this opportunity to copy the public key of 
   # the mapr user into root's authorized key file ... but let's not for now
   return 0
 }
@@ -451,13 +440,16 @@ function setup_mapr_repo_deb() {
     MAPR_PKG="http://package.mapr.com/releases/v${MAPR_VERSION}/ubuntu"
     MAPR_ECO="http://package.mapr.com/releases/ecosystem/ubuntu"
 
-    [ -f $MAPR_REPO_FILE ] && return ;
-
     echo Setting up repos in $MAPR_REPO_FILE
-    cat > $MAPR_REPO_FILE << EOF_ubuntu
+
+    if [ ! -f $MAPR_REPO_FILE ] ; then
+    	cat > $MAPR_REPO_FILE << EOF_ubuntu
 deb $MAPR_PKG mapr optional
 deb $MAPR_ECO binary/
 EOF_ubuntu
+	else
+  		sed -i "s|/releases/v.*/|/releases/v${MAPR_VERSION}/|" $MAPR_REPO_FILE
+	fi
 
     apt-get update
 }
@@ -467,12 +459,16 @@ function setup_mapr_repo_rpm() {
     MAPR_PKG="http://package.mapr.com/releases/v${MAPR_VERSION}/redhat"
     MAPR_ECO="http://package.mapr.com/releases/ecosystem/redhat"
 
-    [ -f $MAPR_REPO_FILE ] && return ;
+    if [ -f $MAPR_REPO_FILE ] ; then
+  		sed -i "s|/releases/v.*/|/releases/v${MAPR_VERSION}/|" $MAPR_REPO_FILE
+    	yum makecache
+		return 
+	fi
 
     echo Setting up repos in $MAPR_REPO_FILE
     cat > $MAPR_REPO_FILE << EOF_redhat
 [MapR]
-name=MapR Version $MAPR_VERSION media
+name=MapR Core Components
 baseurl=$MAPR_PKG
 ${MAPR_PKG//package.mapr.com/archive.mapr.com}
 enabled=1
@@ -500,7 +496,7 @@ EOF_redhat
     fi
 
     wget -O $EPEL_RPM http://download.fedoraproject.org/pub/$EPEL_LOC
-    [ $? -eq 0 ] && rpm --quiet -i $EPEL_RPM
+    [ $? -eq 0  -a  ! -f /etc/yum.repos.d/epel.repo ] && rpm --quiet -i $EPEL_RPM
 
     yum makecache
 }
@@ -516,6 +512,11 @@ function setup_mapr_repo() {
 
 function do_initial_install()
 {
+		# In Amazon VPC configs, we need to execute some sudo operations
+		# in order for the update processes to work .. so we need to
+		# to disable the "requiretty" limitation immediately
+	update_sudo_config
+
 	update_os
 	install_java
 
@@ -533,7 +534,7 @@ function do_initial_install()
 	return $retCode
 }
 
-function main()
+function main() 
 {
 	echo "$0 script started at "`date` >> $LOG
 	echo "" >> $LOG
@@ -551,7 +552,7 @@ function main()
 
 			# As a last act, copy this script into ~${MAPR_USER}.
 			# We may re-use the script if an AMI is generated
-			# after its execution ... and it's also just a
+			# after its execution ... and it's also just a 
 			# good practice for keeping track of the activity.
 		MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
 		cp $0 $MAPR_USER_DIR/launch-mapr-instance.sh
@@ -562,6 +563,8 @@ function main()
 
 		echo "system initialization complete at "`date` >> $LOG
 		echo "$0 script may pause at this point" >> $LOG
+	else
+		setup_mapr_repo
 	fi
 
 	return 0
@@ -580,3 +583,4 @@ if [ -n "${MAPR_USER_DIR}"  -a  -d ${MAPR_USER_DIR} ] ; then
 fi
 
 exit $exitCode
+
