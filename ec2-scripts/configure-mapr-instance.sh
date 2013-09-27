@@ -55,6 +55,7 @@ MAPR_HOME=/opt/mapr
 MAPR_UID=${MAPR_UID:-2000}
 MAPR_USER=${MAPR_USER:-mapr}
 MAPR_GROUP=`id -gn ${MAPR_USER}`
+MAPR_GROUP=${MAPR_GROUP:-mapr}
 MAPR_PASSWD=${MAPR_PASSWD:-MapR}
 MAPR_METRICS_DEFAULT=metrics
 
@@ -63,7 +64,7 @@ MAPR_HADOOP_DIR=${MAPR_HOME}/hadoop/hadoop-0.20.2
 
 LOG=/tmp/configure-mapr.log
 
-# Extend the PATH just in case ; probably not necessary
+# Make sure sbin tools are in PATH
 PATH=/sbin:/usr/sbin:/usr/bin:/bin:$PATH
 
 # Helper utility to log the commands that are being run and
@@ -315,7 +316,8 @@ install_mapr_packages() {
 	echo Installing MapR software components >> $LOG
 	
 	if which dpkg &> /dev/null; then
-		MAPR_INSTALLED=`dpkg --list mapr-* | grep ^ii | awk '{print $2}'`
+#		MAPR_INSTALLED=`dpkg --list mapr-* | grep ^ii | awk '{print $2}'`
+		MAPR_INSTALLED=`dpkg --get-selections mapr-* | grep ^ii | awk '{print $2}'`
 	elif which rpm &> /dev/null; then
 		MAPR_INSTALLED=`rpm -q --all --qf "%{NAME}\n" | grep ^mapr `
 	else
@@ -367,6 +369,8 @@ install_mapr_packages() {
 	update-env-sh JAVA_HOME $JAVA_HOME
 
 	echo MapR software installation complete >> $LOG
+
+	return 0
 }
 
 function regenerate_mapr_hostid() {
@@ -447,7 +451,7 @@ find_mapr_disks() {
 		[ $? -eq 0 ] && continue
 
 		if which pvdisplay &> /dev/null; then
-			pvdisplay $dev 2> /dev/null
+			pvdisplay $dev &> /dev/null
 			[ $? -eq 0 ] && continue
 		fi
 
@@ -510,6 +514,7 @@ provision_mapr_disks() {
 
 }
 
+
 # Initializes MySQL database if necessary.
 #
 #	Input: MAPR_METRICS_SERVER  (global)
@@ -531,7 +536,7 @@ configure_mapr_metrics() {
 	[ -z "${MAPR_METRICS_SERVER:-}" ] && return 0
 	[ -z "${MAPR_METRICS_DB:-}" ] && return 0
 
-	if which yum &> /dev/null; then
+	if which yum &> /dev/null ; then
 		yum list soci-mysql > /dev/null 2> /dev/null
 		if [ $? -ne 0 ] ; then 
 			echo "Skipping metrics configuration; missing dependencies" >> $LOG
@@ -600,10 +605,10 @@ configure_mapr_services() {
 	WARDEN_CONF_FILE=${MAPR_HOME}/conf/warden.conf
 
 # give MFS more memory -- only on slaves, not on masters
-#sed -i 's/service.command.mfs.heapsize.percent=.*$/service.command.mfs.heapsize.percent=35/'
+#sed -i 's/service.command.mfs.heapsize.percent=.*$/service.command.mfs.heapsize.percent=35/' $MFS_CONF_FILE
 
 # give CLDB more threads 
-# sed -i 's/cldb.numthreads=10/cldb.numthreads=40/' $MAPR_HOME/conf/cldb.conf
+# sed -i 's/cldb.numthreads=10/cldb.numthreads=40/' $CLDB_CONF_FILE
 
 		# Disable central configuration (spinning up Java processes
 		# every 5 minutes doesn't help; we'll run it on our own
@@ -633,7 +638,7 @@ update_site_config() {
 	CORE_CONF_FILE=${HADOOP_CONF_DIR}/core-site.xml
 
 		# core-site changes need to include namespace mappings
-    sudo sed -i '/^<\/configuration>/d' ${CORE_CONF_FILE}
+    sed -i '/^<\/configuration>/d' ${CORE_CONF_FILE}
 
 	echo "
 <property>
@@ -642,12 +647,12 @@ update_site_config() {
 </property>" | sudo tee -a ${CORE_CONF_FILE}
 
 	echo "" | sudo tee -a ${CORE_CONF_FILE}
-	echo '</configuration>' | sudo tee -a ${CORE_CONF_FILE}
+	echo '</configuration>' | tee -a ${CORE_CONF_FILE}
 
 }
 
 #
-#  Wait until DNS can find all the masters
+#  Wait until DNS can find all the zookeeper nodes
 #	Should put a timeout ont this ... it's really not well designed
 #
 function resolve_zknodes() {
@@ -730,6 +735,7 @@ create_metrics_db() {
 		# Install MySQL, update MySQL config and restart the server
 	MYSQL_OK=1
 	if  which dpkg &> /dev/null ; then
+		export DEBIAN_FRONTEND=noninteractive
 		apt-get install -y mysql-server mysql-client
 
 		MYCNF=/etc/mysql/my.cnf
@@ -801,6 +807,12 @@ create_metrics_db() {
 			    sedArg="`echo "$MYSQL_DATA_DIR" | sed -e 's/\//\\\\\//g'`"
 				sed -e "s/^datadir[ 	=].*$/datadir = ${sedArg}/g" \
 					-i".localdata" $MYCNF 
+
+                    # Default MySql 5.5 has innodb, but doesn't
+					# specify a data file.  We'll do it here
+					# if we see InnoDB in the MYCNF file
+				sed -e "/^#.*InnoDB$/a\
+innodb_data_file_path=ibdata1:10M:autoextend:max:1024M" $MYCNF
 
 					# On Ubuntu, AppArmor gets in the way of
 					# mysqld writing to the NFS directory; We'll 
@@ -982,7 +994,7 @@ function finalize_mapr_cluster()
 	if [ $? -ne 0 ] ; then
 		echo "maprcli command not found" >> $LOG
 		echo "This is typical on a client-only install" >> $LOG
-		return
+		return 0
 	fi
 																
 	c maprcli acl edit -type cluster -user ${MAPR_USER}:fc
@@ -1044,10 +1056,7 @@ function finalize_mapr_cluster()
 	if [ ${AMI_LAUNCH_INDEX:-1} -eq 0 ] ; then 
 		echo "Creating /user/${MAPR_USER} in configured cluster" >> $LOG
 
-		maprcli volume create \
-			-name ${MAPR_USER}_home -user ${MAPR_USER}:fc \
-			-path /user/$MAPR_USER -createparent true \
-			-replicationtype low_latency
+		su $MAPR_USER -c "maprcli volume create -name ${MAPR_USER}_home -path /user/$MAPR_USER -createparent true -replicationtype low_latency"
 	
 		if [ $? -ne 0 ] ; then
 			echo "Error: unable to create /user directory for $MAPR_USER" >> $LOG
@@ -1337,8 +1346,8 @@ function main()
 
 	provision_mapr_disks
 
-		# Most of the time in Amazon we DO NOT want to
-		# auto-start ... so we'll control that here.
+		# Most of the time in virtual environments we DO NOT
+		# want to auto-start ... so we'll control that here.
 	if [ -z "${AMI_IMAGE}" ] ; then
 		enable_mapr_services
 	else
