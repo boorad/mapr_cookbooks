@@ -71,6 +71,7 @@ THIS_SCRIPT=$0
 MAPR_USER=mapr
 MAPR_LAUNCH_SCRIPT=launch-mapr-instance.sh
 MAPR_CONFIG_SCRIPT=configure-mapr-instance.sh
+NAT_CONFIG_SCRIPT=configure-pat.sh
 VPC_CONFIG_SCRIPT=configure-vpc-cluster.sh
 
 NODE_NAME_ROOT=node		# used in config file to define nodes for deployment
@@ -89,7 +90,7 @@ usage() {
        --instance-type <instance-type>
        --key-file <ec2-private-key-file>
        [ --zone ec2-availability-zone ]
-       [ --group ec2-security-group ]
+       [ --sgroup ec2-security-group ]
        [ --license-file <license to be installed> ]
        [ --data-disks <# of ephemeral disks to FORCE into the AMI> ]
        [ --nametag <uniquifying cluster tag> ]
@@ -416,6 +417,35 @@ allocate_and_assign_eip() {
 	grep -v "^0 " edi.out.orig >> edi.out
 }
 
+# Initialize the gateway node (node 0) to be the NAT for
+# the remaining instances.  See 
+# http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_NAT_Instance.html
+#
+initialize_vpc_nat() {
+	gateway=( $(grep "^0 " edi.out) )
+	ami_index=${gateway[0]}
+	pub_name=${gateway[1]}
+
+	scp $MY_SSH_OPTS $NAT_CONFIG_SCRIPT ${ec2user}@${pub_name}:
+
+	echo "Executing $NAT_CONFIG_SCRIPT on cluster node 0"
+	if [ $ec2user = "root" ] ; then
+		ssh $MY_SSH_OPTS ${ec2user}@${pub_name} \
+			-n "~${ec2user}/$NAT_CONFIG_SCRIPT"
+	else
+		ssh $MY_SSH_OPTS ${ec2user}@${pub_name} \
+			-n "sudo ~${ec2user}/$NAT_CONFIG_SCRIPT"
+	fi
+
+		# We know the gateway is instance 0, so we can break 
+		# after the first execution of this (remember, the instances
+		# list is sorted).
+	for inst in $instances ; do
+		ec2-modify-instance-attribute $inst --region $region \
+			--source-dest-check false
+		break
+	done
+}
 
 # Configuring a VPC cluster is a little more complex.
 # Basically, we use the gateway node (node 0) and 
@@ -565,8 +595,8 @@ GCEOF
 # Lots of errors from describe-instance-attribute; no easy way to work
 # around them, so just try all instances in case one works.
 #	BIGGER PROBLEM : --group-id is broken in the interface
-#		if we don't get an answer, just look for default group and
-#		update that one.
+#		if we don't get an answer, just look for default security group
+#		and update that one.
 update_security_group() {
 	for inst in $instances
 	do
@@ -575,7 +605,7 @@ update_security_group() {
 	done
 
 		# If we specified a group, be sure to pick that one
-	[ -z "${sg}"  -a  -n "${group}" ] && sg=$group
+	[ -z "${sg}"  -a  -n "${sgroup}" ] && sg=$sgroup
 
 		# Otherwise, assume we're in the default group for this region
 	if [ -z "${sg}" ] ; then
@@ -617,7 +647,7 @@ do
   --key-file)     ec2keyfile=$2  ;;
   --region)       region=$2  ;;
   --zone)         zone=$2 ;;
-  --group)        group=$2 ;;
+  --sgroup)       sgroup=$2 ;;
   --data-disks)   dataDisks=$2 ;;
   --license-file) licenseFile=$2 ;;
   --nametag)      nametag=$2 ;;
@@ -646,7 +676,7 @@ else
 fi
 
 # for VPC testing
-#	group=${group:-"sg-61031a0d"}
+#	sgroup=${sgroup:-"sg-61031a0d"}
 
 
 # Don't deal with licensing if the file doesn't exist
@@ -772,7 +802,7 @@ echo "	key-file $MY_SSH_KEY ($ec2keypair)"
 echo "	region ${region:-'default'}"
 echo "OPTIONAL: ----- "
 echo "	zone ${zone:-'unset'}"
-echo "	group ${group:-'unset'}"
+echo "	security group ${sgroup:-'unset'}"
 echo "	subnet ${subnet:-'unset'}"
 echo "	dataDisks ${dataDisks:-unset}"
 echo "	licenseFile ${licenseFile:-unset}"
@@ -785,8 +815,9 @@ if [ -z "${YoN:-}"  -o  -n "${YoN%[yY]*}" ] ; then
  	exit 1
 fi
 
+startTime=$(date +"%H:%M:%S")
 echo ""
-echo "Proceeding with MapR cluster deployment ..." 
+echo "Proceeding with MapR cluster deployment at $startTime ..." 
 
 
 # Handle very simply for now ... no more than 4 ephemeral disks per
@@ -804,15 +835,15 @@ if [ -n "${dataDisks}"  -a  "${dataDisks:-0}" -gt 0 ] ; then
 	fi
 fi
 
-# If there is a group and a subnet passed on the command line,
+# If there is a security group and a subnet passed on the command line,
 # pass them in to our create instance operation.  We need a subnet
 # for all VPC groups, so grab one if we see a VPC group specified.
-if [ -n "${group}" ] ; then
-	SG_ARG="--group $group"
+if [ -n "${sgroup}" ] ; then
+	SG_ARG="--group $sgroup"
 
 			# If a subnet was not specified explicitly, 
 			# list all subnets for the group and grab the first one
-	ec2-describe-group --region $region $group | grep ^GROUP | grep -q -e "vpc-"
+	ec2-describe-group --region $region $sgroup | grep ^GROUP | grep -q -e "vpc-"
 	isVPC=$? 
 	if [ -z "${subnet}" -a  $isVPC ] ; then 
 		subnets=`ec2-describe-subnets --region $region | grep ^SUBNET | grep available | awk '{print $2}'`
@@ -893,6 +924,7 @@ if [ -z "${YoN:-}"  -o  -n "${YoN%[yY]*}" ] ; then
 fi
 
 if [ $isVPC ] ; then
+	initialize_vpc_nat
 	configure_vpc_cluster
 else
 	configure_public_cluster
@@ -921,3 +953,6 @@ do
 	echo "	https://$hn:8443"
 done
 
+endTime=$(date +"%H:%M:%S")
+echo ""
+echo "MapR cluster deployment began at  $startTime and finished at $endTime" 

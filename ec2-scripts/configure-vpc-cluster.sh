@@ -32,14 +32,15 @@ MAPR_CONFIG_SCRIPT=configure-mapr-instance.sh
 CLUSTER_SSH_KEY=$HOME/.ssh/vpc_private_key
 DESC_INSTANCE_OUT=$HOME/edi.out
 
-# Hard-coded for now ... long term we need to pass in
-# the NAT_IP as meta-data to the script running 
-NAT_IP=10.0.0.106
+# Several approaches
+#	- External NAT (Hard-code the address or pass in as meta-data)
+#	- Use node0 of the cluster as the NAT (after running AWS configure-pat.sh)
+# 
+#	NAT_IP=10.0.0.106
+NAT_IP=`hostname -i`
 IGW_IP=`netstat -rn | grep "^0.0.0.0" | awk '{print $2}'`
 
 THIS_HOST=`hostname`
-
-# Check for all files ... bail if they're not present
 
 MY_SSH_OPTS="-i $CLUSTER_SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes"
 
