@@ -947,9 +947,53 @@ function start_mapr_services()
 
 	if [ ${HDFS_ONLINE} -eq 0 ] ; then
 		echo "ERROR: MapR File Services did not come on-line" >> $LOG
-		exit 1
+		return 1
+	fi
+
+	return 0
+}
+
+
+# Archive the SSH keys into the cluster; we'll pull 
+# them down later.  When all nodes are spinning up at the
+# same time, this 'mostly' works to distribute keys ...
+# since everyone waited for the CLDB to come on line.
+#
+# Root keys for nodes 0 and 1 are distributed; MapR keys
+# for node 0 and all webserver nodes are distributed
+#
+function store_ssh_keys() 
+{
+	echo "Storing ssh keys in MapRFS (if necessary)" >> $LOG
+
+	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
+	clusterKeyDir=/cluster-info/keys
+	rootKeyFile=/root/.ssh/id_rsa.pub
+	maprKeyFile=${MAPR_USER_DIR}/.ssh/id_rsa.pub
+
+	if [ ${AMI_LAUNCH_INDEX:-2} -le 1  -a  -f ${rootKeyFile} ] ; then 
+		echo "  Pushing $rootKeyFile to $clusterKeyDir" >> $LOG
+		hadoop fs -put $rootKeyFile \
+		  $clusterKeyDir/id_rsa_root.${AMI_LAUNCH_INDEX}
+	fi
+	if [ -f ${maprKeyFile} ] ; then
+		if [ -${AMI_LAUNCH_INDEX:-1} -eq 0  -o  -f $MAPR_HOME/roles/webserver ]
+		then
+			echo "  Pushing $maprKeyFile to $clusterKeyDir" >> $LOG
+			hadoop fs -put $maprKeyFile \
+			  $clusterKeyDir/id_rsa_${MAPR_USER}.${AMI_LAUNCH_INDEX}
+		fi 
+	fi
+
+		# if we didn't need to push any keys, lets take a quick sleep here
+		# so that when we call retrieve_ssh_keys later we have a better
+		# chance of actually seeing them
+	if [ ${AMI_LAUNCH_INDEX:-0} -gt 1  -a  ! -f ${MAPR_HOME}/roles/webserver ]
+	then 
+		sleep 10
 	fi
 }
+
 
 # Look to the cluster for shared ssh keys.  This function depends
 # on the cluster being up and happy.  Don't worry about errors
@@ -1007,31 +1051,6 @@ function finalize_mapr_cluster()
 																
 	c maprcli acl edit -type cluster -user ${MAPR_USER}:fc
 
-		# Archive the SSH keys into the cluster; we'll pull 
-		# them down later.  When all nodes are spinning up at the
-		# same time, this 'mostly' works to distribute keys ...
-		# since everyone waited for the CLDB to come on line.
-		#
-		# Root keys for nodes 0 and 1 are distributed; MapR keys
-		# for node 0 and all webserver nodes are distributed
-	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
-	clusterKeyDir=/cluster-info/keys
-	rootKeyFile=/root/.ssh/id_rsa.pub
-	maprKeyFile=${MAPR_USER_DIR}/.ssh/id_rsa.pub
-
-	if [ ${AMI_LAUNCH_INDEX:-2} -le 1  -a  -f ${rootKeyFile} ] ; then 
-		echo "Pushing $rootKeyFile to $clusterKeyDir" >> $LOG
-		hadoop fs -put $rootKeyFile \
-		  $clusterKeyDir/id_rsa_root.${AMI_LAUNCH_INDEX}
-	fi
-	if [ -f ${maprKeyFile} ] ; then
-		if [ -${AMI_LAUNCH_INDEX:-1} -eq 0  -o  -f $MAPR_HOME/roles/webserver ]
-		then
-			echo "Pushing $maprKeyFile to $clusterKeyDir" >> $LOG
-			hadoop fs -put $maprKeyFile \
-			  $clusterKeyDir/id_rsa_${MAPR_USER}.${AMI_LAUNCH_INDEX}
-		fi 
-	fi
 
 	license_installed=0
 	if [ -n "${MAPR_LICENSE_FILE:-}"  -a  -f "${MAPR_LICENSE_FILE}" ] ; then
@@ -1366,6 +1385,8 @@ function main()
 	if [ $? -eq 0 ] ; then
 		start_mapr_services
 		[ $? -ne 0 ] && return $?
+
+		store_ssh_keys
 
 		finalize_mapr_cluster
 
