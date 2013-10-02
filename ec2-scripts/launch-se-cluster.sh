@@ -37,7 +37,7 @@
 #		# With Vanilla CentOS AMI
 #	 ./launch-class-cluster.sh \
 #		--cluster dbt \
-#		--mapr-version 2.1.3 \
+#		--mapr-version 3.0.1 \
 #		--config-file class/5node.lst \
 #		--region us-west-2
 #		--key-file ~/.ssh/tucker-eng \
@@ -51,7 +51,7 @@
 #		# With Ubuntu AMI
 #	 ./launch-class-cluster.sh \
 #		--cluster train \
-#		--mapr-version 2.1.3.2 \
+#		--mapr-version 3.0.1 \
 #		--config-file class/3node.lst \
 #		--region us-west-2
 #		--key-file ~/.ssh/tucker-eng \
@@ -75,6 +75,11 @@ NAT_CONFIG_SCRIPT=configure-pat.sh
 VPC_CONFIG_SCRIPT=configure-vpc-cluster.sh
 
 NODE_NAME_ROOT=node		# used in config file to define nodes for deployment
+
+# Try to save off the output of ec2 commands ... /dev/null if we can't
+ec2cmd_err=./ec2cmd.err
+touch $ec2cmd_err
+[ $? -ne 0 ] && ec2cmd_err="/dev/null"
 
 
 usage() {
@@ -140,7 +145,7 @@ gen_edi_file() {
 		# When a VPC is selected, there will NOT be any 
 		# public address during the initial spin-up ... so we'll have
 		# to fake it
-	if [ $isVPC ] ; then
+	if [ -n "$vpcID" ] ; then
 		ec2-describe-instances --region $region $instances | \
     		awk '/^INSTANCE/ {print $7" unknown_host"$7" "$4" uknown_ip "$13}' | \
 			sort -n -k1 > edi.out
@@ -390,7 +395,7 @@ allocate_and_assign_eip() {
 
 	if [ -n "$instance" ] ; then
 		ec2-associate-address -region $region -i $instance \
-			-a $alloc_id  --allow-reassociation &> /dev/null
+			-a $alloc_id  --allow-reassociation &> $ec2cmd_err
 		if [ $? -ne 0 ] ; then
 			echo "ec2-associate-address failed"
 			exit 1
@@ -572,15 +577,21 @@ finalize_public_cluster() {
 all: $clist
 GCEOF
 
+		# Copy the file into place on nodeZero, and then issue
+		# a preliminary clush command to seed the known-hosts file
 	if [ -f groups.clush ] ; then
 		scp $MY_SSH_OPTS groups.clush ${ec2user}@${nodeZero}:/tmp 
 
 		if [ $ec2user = "root" ] ; then
 			ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
 				-n "[ -d /etc/clustershell ] && cp /tmp/groups.clush /etc/clustershell/groups" 
+			ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
+				-n "clush -a -o '-oStrictHostKeyChecking=no' date" &> /dev/null
 		else
 			ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
 				-n "[ -d /etc/clustershell ] && sudo cp /tmp/groups.clush /etc/clustershell/groups" 
+			ssh $MY_SSH_OPTS ${ec2user}@${nodeZero} \
+				-n "sudo clush -a -o '-oStrictHostKeyChecking=no' date" &> /dev/null
 		fi
 	fi
 }
@@ -600,7 +611,7 @@ GCEOF
 update_security_group() {
 	for inst in $instances
 	do
-		sg=`ec2-describe-instance-attribute $inst --region $region --group-id 2>/dev/null | awk '{print $NF}'`
+		sg=`ec2-describe-instance-attribute $inst --region $region --group-id 2> $ec2cmd_err | awk '{print $NF}'`
 		[ -n "${sg}" ] && break
 	done
 
@@ -609,20 +620,20 @@ update_security_group() {
 
 		# Otherwise, assume we're in the default group for this region
 	if [ -z "${sg}" ] ; then
-		sg=`ec2-describe-group --region $region --filter="group-name=default" 2>/dev/null | grep ^GROUP | awk '{print $2}'`
+		sg=`ec2-describe-group --region $region --filter="group-name=default" 2> $ec2cmd_err | grep ^GROUP | awk '{print $2}'`
 	fi
 
 	if [ -n "${sg}" ] ; then
             # Main ports for web services
 		for p in 8080 8443 7221 9001 50030 50060 ; do
-			ec2-authorize $sg --region $region -P tcp -p $p -s 0.0.0.0/0 &> /dev/null
+			ec2-authorize $sg --region $region -P tcp -p $p -s 0.0.0.0/0 &> $ec2cmd_err
 		done
 
             # NFS ports 
 		for p in 111 2049 ; do
-			ec2-authorize $sg --region $region -P tcp -p $p -s 0.0.0.0/0 &> /dev/null
+			ec2-authorize $sg --region $region -P tcp -p $p -s 0.0.0.0/0 &> $ec2cmd_err
 		done
-		ec2-authorize $sg --region $region -P udp -p 111 -s 0.0.0.0/0 &> /dev/null
+		ec2-authorize $sg --region $region -P udp -p 111 -s 0.0.0.0/0 &> $ec2cmd_err
 	fi
 
 }
@@ -751,7 +762,7 @@ fi
 
 	# We may need to strip off the file suffix ... so check for both
 kp=`basename ${ec2keyfile}`
-ec2-describe-keypairs --region $region 2> /dev/null | \
+ec2-describe-keypairs --region $region 2> $ec2cmd_err | \
 	grep -q -w -e $kp -e ${kp%.*}
 if [ $? -ne 0 ] ; then
 	echo "Error: AWS KeyPair ($kp) for keyfile not found in region $region"
@@ -779,7 +790,7 @@ else
 	esac
 fi
 
-ec2-describe-images --region $region $maprimage &> /dev/null  
+ec2-describe-images --region $region $maprimage &> $ec2cmd_err  
 if [ $? -ne 0 ] ; then
 	echo "Error: AWS Image ($maprimage) not found in region $region"
 	exit 1
@@ -838,23 +849,41 @@ fi
 # If there is a security group and a subnet passed on the command line,
 # pass them in to our create instance operation.  We need a subnet
 # for all VPC groups, so grab one if we see a VPC group specified.
+#	NOTE this is DANGEROUS, since we can't easily get the VPC id from
+#	describe group.
+#
+#	NOTE: the vpcID value set in these lines is used in MULTIPLE places
+#	throughout the script.
+#
 if [ -n "${sgroup}" ] ; then
 	SG_ARG="--group $sgroup"
 
-			# If a subnet was not specified explicitly, 
-			# list all subnets for the group and grab the first one
-	ec2-describe-group --region $region $sgroup | grep ^GROUP | grep -q -e "vpc-"
-	isVPC=$? 
-	if [ -z "${subnet}" -a  $isVPC ] ; then 
-		subnets=`ec2-describe-subnets --region $region | grep ^SUBNET | grep available | awk '{print $2}'`
+		# If a subnet was not specified explicitly, 
+		# list all subnets for the group and grab the first one
+	gline=`ec2-describe-group --region $region $sgroup | grep ^GROUP`
+	if [ -n "$gline" ] ; then
+		for gfield in $gline ; do
+			[ ${gfield} != ${gfield#vpc-} ] && vpcID=$gfield
+		done
+	fi
+
+		# Grab the first subnet in this VPC
+	if [ -z "${subnet}" -a  -n "$vpcID" ] ; then 
+		subnets=`ec2-describe-subnets --region $region --filter="vpc-id=$vpcID" | grep ^SUBNET | grep available | awk '{print $2}'`
 		for snet in $subnets
 		do
 			subnet=$snet
+			break
 		done
 	fi
 	[ -n "${subnet}" ] && SG_ARG="$SG_ARG --subnet $subnet"
 fi
 
+# We want a specific Availability Zone  ONLY  if we don't 
+# hava a subnet (since the subnets carry an availability zone by default)
+if [ -z "$vpcID" ] ; then
+	AZ_ARG="--availability-zone ${zone:-${region}b}"
+fi
 
 # Since we've divided the instantiation of MapR nodes
 # into an initial "launch" phase and a "configure"
@@ -874,7 +903,7 @@ ec2-run-instances $maprimage \
 	  ${AMI_DISK_CONFIG:-} \
 	  --region $region \
 	  ${SG_ARG:-} \
-	  --availability-zone ${zone:-${region}b} | tee eri.out
+	  ${AZ_ARG:-} | tee eri.out
 
 if [ $? -ne 0 ] ; then
 	echo "Error spinning up nodes; cluster should be terminated"
@@ -890,7 +919,7 @@ fi
 #	is inside a VPC or not.  INSANE !!!
 # instances=`awk '/^INSTANCE/ {print $2}' eri.out | tr -s '\n' ' '`
 ami_idx=6
-[ $isVPC ] && ami_idx=$[ami_idx+1]
+[ -n "$vpcID" ] && ami_idx=$[ami_idx+1]
 instances=`grep ^INSTANCE eri.out | sort -n -k $ami_idx | awk '{print $2}'`
 
 sleep 10
@@ -900,7 +929,7 @@ gen_param_file
 
 tag_pending_instances
 
-if [ $isVPC ] ; then
+if [ -n "$vpcID" ] ; then
 	allocate_and_assign_eip
 fi
 
@@ -923,7 +952,7 @@ if [ -z "${YoN:-}"  -o  -n "${YoN%[yY]*}" ] ; then
  	exit 1
 fi
 
-if [ $isVPC ] ; then
+if [ -n "$vpcID" ] ; then
 	initialize_vpc_nat
 	configure_vpc_cluster
 else
