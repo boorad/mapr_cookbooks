@@ -623,6 +623,14 @@ configure_mapr_services() {
 		# name resolution, it's OK to use short hostnames
 	sed -i 's/ --fqdn//' $MAPR_HOME/initscripts/mapr-warden
 
+		# Fix for bug 11649 ; only seen with Debian/Ubuntu ... but
+		# we'll do it for everyone
+	if [ ${MAPR_VERSION%%.*} -ge 3 ] ; then
+		if [ -f $MAPR_HOME/initscripts/mapr-cldb ] ; then
+			sed -i 's/XX:ThreadStackSize=160/XX:ThreadStackSize=256/' \
+				$MAPR_HOME/initscripts/mapr-cldb
+		fi
+	fi
 }
 
 # Simple script to add useful parameters to the 
