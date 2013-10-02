@@ -1,13 +1,18 @@
 The scripts in this directory are designed for use with
-Amazon EC2.  The directory is part of the MapR Mercurial GCE package
-	ssh://mapr@10.250.1.5/gce
-
-See the Overview section below for a description of what happens during
-the launching of a cluster.
+Amazon EC2.  The directory is part of the MapR Deployment Packages
+repository at 
+	github.com/mapr/mapr-deployments
 
 A list of Amazon AMI's known to work with these scripts is given below.
 In theory, any cloud-init AMI will work (though you must know the
-login user with sudo privileges)
+login user with sudo privileges).  Always test a new AMI with 
+eclaunch-script.sh to ensure proper functionality.
+
+
+See the Overview section below for a description of what happens 
+during the launching of a cluster.   See the launch-*-cluster.sh
+scripts for examples.
+
 
 Contents : 
 	launch-class-cluster.sh : 
@@ -24,19 +29,33 @@ Contents :
 
 	[ IN DEVELOPMENT } launch-se-cluster.sh : 
 		An analog of the launch-class-cluster script
-		that supports launching a cluster within an Amazon VPC
-
-	launch-mapr-instance.sh : 
-		Prepare a random Amazon AMI for MapR installation.  
-
-	configure-mapr-instance.sh : 
-		Install and configure MapR software on a node prepared by
-		the launch-mapr-instance.sh script.  Metadata 
-		defining the installation is loaded from /home/mapr/mapr.parm.
+		that supports launching a a public cluster or a
+		cluster within a pre-configured Amazon VPC.
 
 	configureSG.sh : Open the proper ports for MapR traffic in to the 
 		specified security group.  launch-class-cluster will open
-		port 8443 for MCS traffic, but nothing else.
+		port 8443 for MCS traffic, but nothing else.  This script MUST
+		be run against the Amazon VPC created for a launch-se-cluster.sh
+		deployment BEFORE running the launch-se-cluster script.
+
+	
+	*** Helper Scripts used by launch-*-cluster scripts
+		launch-mapr-instance.sh : 
+			Prepare a random Amazon AMI for MapR installation.  This 
+			script has been tested with multiple CentOS and Ubuntu images.
+			It is known NOT to work with the Amazon Linux AMI's because
+			those AMI's do not include repositories with the sdparm package
+
+		configure-mapr-instance.sh : 
+			Install and configure MapR software on a node prepared by
+			the launch-mapr-instance.sh script.  Metadata 
+			defining the installation is loaded from /home/mapr/mapr.parm.
+
+		configure-pat.sh : 
+			Initialize iptables on a given node to enable its function
+			as a NAT gateway for other nodes in the cluster.   This
+			script is used when the cluster is deployed in a 
+			VPC group.
 
 
 Extras : 
@@ -89,6 +108,7 @@ Working AMI's with ebs boot volumes
 
 	us-west-2 region
 		ami-72ce4642	CentOS 6.3 (minimal) (su login: ec2-user)
+		ami-ec30a5dc	CentOS 6.4 + cloud-init (su login: ec2-user)
 		ami-8e109ebe	Ubuntu 12.04 (su login: ubuntu)
 
 			HVM support (m2/m3 instance types)
@@ -98,6 +118,11 @@ Working AMI's with ebs boot volumes
 	eu-west-1 region
 		ami-a93133dd	CentOS 6.3 {minimal} (su login: ec2-user)
 
+
+	NOTE: 
+		The minimal CentOS images can take a VERY long time to
+		install ... more than 30 minutes due to the plethora of
+		operating system packages needed for a MapR deployment.
 
 Overview
 	Goal : 
@@ -118,7 +143,8 @@ Overview
 			done to ensure, for example, that there is a CLDB node
 			and an odd number of zookeepers).
 		- Run the launch-*-cluster.sh script with the proper arguments
-			The script performs the following operations
+			The script performs the following operations for clusters
+			where every node has a public IP (the default)
 				1. Create <n> EC2 instances, based on the number of
 				   entries in the roles file
 				2. Pass the launch-mapr-instance.sh script into each
@@ -141,6 +167,15 @@ Overview
 					b. Create a "host mapping file" for use on the client
 					   to properly map private host names of the cluster
 					   node to public IP addresses.
+
+			The logic is slightly different for a cluster deployed in
+			an Amazon VPC.   Additional configuration is done on node0 
+				1. An Elastic IP address is assigned to that node
+				2. The node is configured as a NAT gateway
+			The rest of the installation process proceeds pretty much 
+			as described above, though driven by the 
+			configure-vpc-cluster.sh script from node0 (since it is 
+			the only node with network access to the other cluster nodes).
 
 Known Issues:
 	The launch-mapr-instance.sh script is limited to 16K.
