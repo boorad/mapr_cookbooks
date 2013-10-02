@@ -119,7 +119,7 @@ wait_for_launch_complete() {
 		for node in $vpc_hosts
 		do
 			ssh $MY_SSH_OPTS $MAPR_USER@${node} \
-				-n "ls ~${MAPR_USER}/${MAPR_LAUNCH_SCRIPT}" 2> /dev/null
+				-n "ls ~${MAPR_USER}/${MAPR_LAUNCH_SCRIPT}" &> /dev/null
 			[ $? -ne 0 ] && break
 			mapr_user_found=$[mapr_user_found+1]
 		done
@@ -138,6 +138,12 @@ configure_private_cluster() {
 		hpkgs=`grep "^${NODE_NAME_ROOT}${ami_index}:" $configFile | cut -f2 -d:`
 		sed "s/^MAPR_PACKAGES=.*$/MAPR_PACKAGES=${hpkgs}/" $MAPR_PARAM_FILE \
 			> $host_param_file
+
+			# There's an EC2 bug where the meta-data "ami-launch-index"
+			# is not populated for VPC deployments, and yet we NEED it
+			# to share SSH keys.   We'll just shove it into place here.
+			#	DBT 01-Oct-2013
+		echo "AMI_LAUNCH_INDEX=$ami_index" >> $host_param_file
 	
 			# No need to do the work if this is our gateway server;
 			# it already has the information it needs.
