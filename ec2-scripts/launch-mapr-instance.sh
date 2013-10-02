@@ -265,7 +265,7 @@ function install_java() {
 	echo "Java already installed on this instance" >> $LOG
   	java -version 2>&1 | head -1 >> $LOG
 
-		# We could be linked to the JRE or JDK version; we want
+		# We could be linked to the JRE or JDK version; we need
 		# the REAL jdk, so look for javac in the directory we choose
 	jcmd=`python -c "import os; print os.path.realpath('$javacmd')"`
 	if [ -x ${jcmd%/jre/bin/java}/bin/javac ] ; then
