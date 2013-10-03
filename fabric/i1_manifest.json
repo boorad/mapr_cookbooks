@@ -1,0 +1,35 @@
+{
+  "run_list": [
+    "role[mapr_tasktracker]",
+    "role[mapr_fileserver]",
+    "role[mapr_cldb]",
+    "role[mapr_zookeeper]",
+    "role[mapr_nfs]",
+    "role[mapr_configure]"
+  ],
+  "mapr": {
+    "version": "3.0.1",
+    "node" : {
+      "ip": "192.168.33.11",
+      "host": "i1",
+      "fqdn": "i1.cluster.com",
+      "disks" : ["/dev/sdb","/dev/sdc","/dev/sdd"]
+    },
+    "nodes" : [
+        { "ip": "192.168.33.11", "host": "i1", "fqdn": "i1.cluster.com" },
+        { "ip": "192.168.33.12", "host": "i2", "fqdn": "i2.cluster.com" },
+        { "ip": "192.168.33.13", "host": "i3", "fqdn": "i3.cluster.com" },
+        { "ip": "192.168.33.14", "host": "i4", "fqdn": "i4.cluster.com" },
+        { "ip": "192.168.33.15", "host": "i5", "fqdn": "i5.cluster.com" }
+    ],
+    "groups" : {
+      "all" : ["192.168.33.11","192.168.33.12","192.168.33.13","192.168.33.14",
+               "192.168.33.15"],
+      "cldb" : ["192.168.33.14","192.168.33.15"],
+      "zk" : ["192.168.33.11","192.168.33.12","192.168.33.13"],
+      "jt" : ["192.168.33.11"],
+      "tt" : ["192.168.33.11","192.168.33.12","192.168.33.13","192.168.33.14",
+               "192.168.33.15"]
+    }
+  }
+}
