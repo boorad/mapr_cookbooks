@@ -6,7 +6,7 @@
 #
 # Script to be executed on top of a newly created Linux instance 
 # within a cloud environment to prepare an instance for later execution
-# of configure-mapr-instance script.
+# of configure-mapr-instance.sh script.
 #
 # Expectations:
 #	- Script run as root user (hence no need for permission checks)
@@ -34,8 +34,7 @@ LOG=/tmp/launch-mapr.log
 # Extend the PATH just in case ; probably not necessary
 PATH=/sbin:/usr/sbin:/usr/bin:/bin:$PATH
 
-# Helper utility to log the commands that are being run and
-# save any errors to a log file
+# Helper utility to log the commands that are being run and their output
 #	BE CAREFUL ... this function cannot handle command lines with
 #	their own redirection.
 
@@ -58,8 +57,16 @@ function add_epel_repo() {
         EPEL_LOC="epel/6/x86_64/epel-release-6-8.noarch.rpm"
     fi
 
-    wget -O $EPEL_RPM http://download.fedoraproject.org/pub/$EPEL_LOC
-    [ $? -eq 0 ] && rpm --quiet -i $EPEL_RPM
+	epel_def=/etc/yum.repos.d/epel.repo
+    if [ -f $epel_def ] ; then
+		grep -q "^enabled=1" $epel_def
+		if [ $? -ne 0 ] ; then
+			sed -i '0,/^enabled=0/s/enabled=0/enabled=1/' $epel_def
+		fi
+	else 
+    	wget -O $EPEL_RPM http://download.fedoraproject.org/pub/$EPEL_LOC
+    	[ $? -eq 0 ] && rpm --quiet -i $EPEL_RPM
+	fi
 }
 
 function update_os_deb() {
@@ -95,8 +102,7 @@ function update_os_rpm() {
 
 # Make sure that NTP service is sync'ed and running
 # Key Assumption: the /etc/ntp.conf file is reasonable for the 
-#	hosting cloud platform.   We could shove our own NTP servers into
-#	place, but that seems like a risk.
+# hosting cloud platform.
 function update_ntp_config() {
 	echo "  updating NTP configuration" >> $LOG
 
@@ -115,8 +121,6 @@ function update_ntp_config() {
 	ntpdate pool.ntp.org
 	$SERVICE_SCRIPT start
 
-		# TBD: copy in /usr/share/zoneinfo file based on 
-		# zone in which the instance is deployed
 	zoneInfo=$(curl -f ${murl_top}/placement/availability-zone)
 	curZone=`basename "${zoneInfo}"`
 	curTZ=`date +"%Z"`
@@ -262,7 +266,7 @@ function install_java() {
 	#
   javacmd=`which java`
   if [ $? -eq 0 ] ;  then
-	echo "Java already installed on this instance" >> $LOG
+	echo "JRE (and possibly JDK) already installed on this instance" >> $LOG
   	java -version 2>&1 | head -1 >> $LOG
 
 		# We could be linked to the JRE or JDK version; we need
@@ -286,7 +290,7 @@ function install_java() {
 		return 0
 	fi
 
-	echo "Could not identify JAVA_HOME; will install Java ourselves" >> $LOG
+	echo "Could not identify JAVA_HOME; will install JDK ourselves" >> $LOG
   fi
 
   attempts=0
