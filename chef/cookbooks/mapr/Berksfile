@@ -1,0 +1,14 @@
+# use Opscode's public cookbooks
+site :opscode
+
+# use these cookbooks
+cookbook 'apt'
+cookbook 'emacs'
+cookbook 'hostname'
+cookbook 'hostsfile'
+cookbook 'iptables'
+cookbook 'java'
+cookbook 'mysql'
+cookbook 'ntp'
+cookbook 'ulimit'
+cookbook 'yum'
