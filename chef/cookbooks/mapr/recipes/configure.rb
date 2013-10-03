@@ -65,7 +65,7 @@ end
 template "#{node[:mapr][:home]}/conf/disks.txt" do
   source "disks.erb"
   variables({
-    :disks => node[:mapr][:disks]
+    :disks => node[:mapr][:node][:disks]
   })
   notifies :run, resources(:execute => "disksetup"), :immediately
 end

@@ -5,17 +5,17 @@ default[:mapr][:group] = "mapr"
 
 default[:ntp][:servers] = ["0.pool.ntp.org", "1.pool.ntp.org"]
 
-default[:mapr][:host] = "nodeX"
-default[:mapr][:fqdn] = "nodeX.cluster.com"
-default[:mapr][:ip] = "1.1.1.1"
+default[:mapr][:node][:host] = "nodeX"
+default[:mapr][:node][:fqdn] = "nodeX.cluster.com"
+default[:mapr][:node][:ip] = "1.1.1.1"
 
 
 default[:mapr][:home] = "/opt/mapr"
 default[:mapr][:clustername] = "my.cluster.com"
-default[:mapr][:version] = "2.1.3"
+default[:mapr][:version] = "3.0.1"
 default[:mapr][:repo_url] = "http://package.mapr.com/releases"
 
-default[:mapr][:disks] = ["/dev/sdb","/dev/sdc","/dev/sdd"]
+default[:mapr][:node][:disks] = ["/dev/sdb","/dev/sdc","/dev/sdd"]
 
 default[:mapr][:ports] = [
                           7222,

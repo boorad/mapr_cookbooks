@@ -1,0 +1,9 @@
+fabric/*.pyc
+fabric/*.json
+
+.DS_Store
+
+.vagrant
+Vagrantfile
+create-local-repo.txt
+*gist*

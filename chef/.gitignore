@@ -2,3 +2,4 @@
 .rake_test_cache
 .vagrant
 Vagrantfile*
+example.json
