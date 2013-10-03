@@ -25,6 +25,7 @@
 #	ami-89ddf3cc	Ubuntu 12.04 from MapR training (no disks)
 #
 # Known x86_64 AMI's for us-west-2
+#	ami-d03ea1e0	Amazon Linux 2013.09 EBS
 #   ami-8a25a9ba    RedHat 6.3  ebs  (NOT cloud-init)
 #   ami-123ab122    RedHat 6.3  ebs  (NOT cloud-init)
 #	ami-3a79f30a	CentOS 6.3  ebs   (NOT cloud-init)
