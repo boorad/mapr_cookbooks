@@ -9,51 +9,51 @@ A list of Amazon AMI's known to work with these scripts is given below.
 In theory, any cloud-init AMI will work (though you must know the
 login user with sudo privileges)
 
-Contents : 
-	launch-class-cluster.sh : 
+Contents :
+	launch-class-cluster.sh :
 		Wrapper script to create EC2 instances and configures them
-		for MapR based on the details in a list file (similar to the 
-		old maprinstall roles file).  The script leverages the 
+		for MapR based on the details in a list file (similar to the
+		old maprinstall roles file).  The script leverages the
 		launch-mapr-instance.sh and configure-mapr-instance.sh scripts.
 
-		The deployment is targeted for MapR training classes, where 
+		The deployment is targeted for MapR training classes, where
 		all nodes have a public IP address.
 
-		The comments in this script include excellent examples for 
+		The comments in this script include excellent examples for
 		launching clusters.
 
-	[ IN DEVELOPMENT } launch-se-cluster.sh : 
+	[ IN DEVELOPMENT } launch-se-cluster.sh :
 		An analog of the launch-class-cluster script
 		that supports launching a cluster within an Amazon VPC
 
-	launch-mapr-instance.sh : 
-		Prepare a random Amazon AMI for MapR installation.  
+	launch-mapr-instance.sh :
+		Prepare a random Amazon AMI for MapR installation.
 
-	configure-mapr-instance.sh : 
+	configure-mapr-instance.sh :
 		Install and configure MapR software on a node prepared by
-		the launch-mapr-instance.sh script.  Metadata 
+		the launch-mapr-instance.sh script.  Metadata
 		defining the installation is loaded from /home/mapr/mapr.parm.
 
-	configureSG.sh : Open the proper ports for MapR traffic in to the 
+	configureSG.sh : Open the proper ports for MapR traffic in to the
 		specified security group.  launch-class-cluster will open
 		port 8443 for MCS traffic, but nothing else.
 
 
-Extras : 
+Extras :
 	class/*.lst : sample configuration files
-	
+
 	eclaunch-script.sh : launch a single EC2 instance with a
 		startup script (no larger than 16KB)
-		
+
 Prerequisites:
 	Install the Amazon EC2 utility package :
 		http://aws.amazon.com/developertools/351
 	Your environment should have the $TOOLS/bin directory in your path
-	Establish/retrieve your AWS credentials 
+	Establish/retrieve your AWS credentials
 		AWS_USER, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY
 
 
-The scripts assume that the EC2 environment is set 
+The scripts assume that the EC2 environment is set
 (these are examples from my Mac OSX environment)
 	JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Home
 	EC2_HOME=$HOME/utils/ec2-api-tools-1.6.8.0
@@ -63,7 +63,7 @@ The scripts assume that the EC2 environment is set
 
 
 MetaData available during launch:
-	The Amazon framework provides several key details via a REST 
+	The Amazon framework provides several key details via a REST
 	interface during instance spin-up.   One's we've used include:
 
 		murl_top=http://169.254.169.254/latest/meta-data
@@ -73,7 +73,7 @@ MetaData available during launch:
 		THIS_HOST=${THIS_FQDN%%.*}
 
 		AMI_IMAGE=$(curl -f $murl_top/ami-id)
-		AMI_LAUNCH_INDEX=$(curl -f $murl_top/ami-launch-index) 
+		AMI_LAUNCH_INDEX=$(curl -f $murl_top/ami-launch-index)
 
 
 Working AMI's with ebs boot volumes
@@ -100,7 +100,7 @@ Working AMI's with ebs boot volumes
 
 
 Overview
-	Goal : 
+	Goal :
 		Deploy a MapR cluster within Amazon EC2 based on
 		a roles-file configuration.
 
@@ -125,18 +125,18 @@ Overview
 				   node as an initial setup
 				3. Watch for the existence of the MapR user and the
 				   presence of the launch-mapr.log file (indicating
-				   that the launch-mapr-instance.sh script has 
+				   that the launch-mapr-instance.sh script has
 				   completed successfully.
 				4. Generate the necessary cluster configuration information
 				   based on the roles file and the private IP addresses
 				   of the newly spawned nodes.
-				5. Copy a parameter file (mapr.parm) to each node with 
+				5. Copy a parameter file (mapr.parm) to each node with
 				   the correct configuration details and the desired
 				   MapR software packages.
 				6. Execute the congfigure-mapr-instance.sh script to
 				   install all MapR software and start up the cluster.
 				7. Extra steps
-					a. Copy ssh keys to facilitate MCS usage and 
+					a. Copy ssh keys to facilitate MCS usage and
 					   clush administration.
 					b. Create a "host mapping file" for use on the client
 					   to properly map private host names of the cluster
@@ -144,4 +144,3 @@ Overview
 
 Known Issues:
 	The launch-mapr-instance.sh script is limited to 16K.
-
