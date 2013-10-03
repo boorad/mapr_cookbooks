@@ -20,10 +20,10 @@ def phase_2():
     package_install()
 
 def test():
-#    make_mapr_install_chef_dir()
     copy_manifest()
     copy_cookbooks()
     package_install()
+
 
 ## supporting sub-tasks
 def install_omnibus_chef():
