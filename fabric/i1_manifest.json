@@ -1,8 +1,8 @@
 {
   "run_list": [
+    "role[mapr_jobtracker]",
     "role[mapr_tasktracker]",
     "role[mapr_fileserver]",
-    "role[mapr_cldb]",
     "role[mapr_zookeeper]",
     "role[mapr_nfs]",
     "role[mapr_configure]"
