@@ -12,6 +12,7 @@
 #	- Script run as root user (hence no need for permission checks)
 #	- Basic distro differences (APT-GET vs YUM, etc) can be handled
 #	    There are so few differences, it seemed better to manage one script.
+#	- Script MUST remain less than 16K
 #
 # Tested with MapR 2.0.1, 2.1.x, 3.0.x
 #
@@ -94,10 +95,19 @@ function update_os_rpm() {
 	yum install -y unzip
 	yum install -y realpath
 
-	yum install -y syslinux sdparm
+	yum install -y syslinux 
 	yum install -y nmap sysstat
 
 	yum install -y clustershell pdsh
+
+		# For Amazon Linux, sdparm is a problem; test here and
+		# grab from rpmforge if needed.
+	yum install -y sdparm 
+	if [ $? -ne 0 ] ; then
+    	SDPARM_RPM=/tmp/sdparm.rpm
+    	wget -O $SDPARM_RPM http://pkgs.repoforge.org/sdparm/sdparm-1.08-1.el6.rfx.x86_64.rpm
+    	[ $? -eq 0  ] && rpm --quiet -i $SDPARM_RPM
+	fi
 }
 
 # Make sure that NTP service is sync'ed and running
@@ -530,9 +540,7 @@ function do_initial_install()
 	update_root_user
 	retCode=$?
 
-		# Last thing we do is restart ssh; no need to track
-		# error status on this ... nothing we could do with the
-		# error anyway.
+		# Last thing we do is restart ssh (ignoring errors)
 	restart_ssh
 
 	return $retCode
@@ -555,9 +563,6 @@ function main()
 		fi
 
 			# As a last act, copy this script into ~${MAPR_USER}.
-			# We may re-use the script if an AMI is generated
-			# after its execution ... and it's also just a 
-			# good practice for keeping track of the activity.
 		MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
 		cp $0 $MAPR_USER_DIR/launch-mapr-instance.sh
 		if [ $? -eq 0 ] ; then
