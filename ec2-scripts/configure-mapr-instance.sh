@@ -495,7 +495,11 @@ provision_mapr_disks() {
 	find_mapr_disks
 	if [ -n "$MAPR_DISKS" ] ; then
 		for d in $MAPR_DISKS ; do echo $d ; done >> $diskfile
-		c $MAPR_HOME/server/disksetup -M -F $diskfile
+		$MAPR_HOME/server/disksetup -M -F $diskfile
+
+			# Archive the diskfile so we can reuse later
+		MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
+		cp $diskfile $MAPR_USER_DIR
 	else
 		echo "No unused disks found" >> $LOG
 		if [ -n "$MAPR_DISKS_PREREQS" ] ; then
@@ -1029,7 +1033,7 @@ function retrieve_ssh_keys()
 		if [ ! -f ${MAPR_USER_DIR}/.ssh/$kf ] ; then
 			hadoop fs -get ${kdir}/${kf} ${MAPR_USER_DIR}/.ssh/$kf
 			cat ${MAPR_USER_DIR}/.ssh/$kf >> ${akFile}
-			chown --reference=${MAPR_USER_DIR}/.bashrc \
+			chown --reference=${MAPR_USER_DIR} \
 				${MAPR_USER_DIR}/.ssh/$kf ${akFile}
 		fi
 	done
