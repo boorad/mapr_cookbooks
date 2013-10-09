@@ -1,0 +1,78 @@
+
+Contents : 
+	launch-se-cluster.sh : 
+		Wrapper script to create EC2 instances and configure them
+		for MapR based on the details in a list file (similar to the 
+		old maprinstall roles file).  The script leverages the 
+		launch-mapr-instance.sh and configure-mapr-instance.sh scripts.
+
+		The deployment is targeted for MapR Sales Engineers and their
+		prospects.  The default deployment selects the open AWS 
+		network (all nodes have public IP addresses).  Alternatively,
+		a pre-configured Amazon Virtual Private Cloud network can
+		be specified.
+
+		The comments in this script include excellent examples for 
+		launching clusters.
+
+	launch-class-cluster.sh : 
+		An analog of the launch-se-cluster script
+		designed specifically for the MapR training team.   It 
+		supports the open AWS network only.
+
+	configureSG.sh : Open the proper ports for MapR traffic in to the 
+		specified security group.  launch-class-cluster will open
+		port 8443 for MCS traffic, but nothing else.  This script MUST
+		be run against the Amazon VPC created for a launch-se-cluster.sh
+		deployment BEFORE running the launch-se-cluster script.
+
+	
+	*** Helper Scripts used by launch-*-cluster scripts
+		launch-mapr-instance.sh : 
+			Prepare a random Amazon AMI for MapR installation.  This 
+			script has been tested with multiple CentOS and Ubuntu images.
+			It is known NOT to work with the Amazon Linux AMI's because
+			those AMI's do not include repositories with the sdparm package
+				NOTE: this script is limited to 16K (a cloud-init limitation)
+
+		configure-mapr-instance.sh : 
+			Install and configure MapR software on a node prepared by
+			the launch-mapr-instance.sh script.  Metadata 
+			defining the installation is loaded from /home/mapr/mapr.parm.
+
+		configure-pat.sh : 
+			Initialize iptables on a given node to enable its function
+			as a NAT gateway for other nodes in the cluster.   This
+			script is used when the cluster is deployed in a 
+			VPC group.
+
+
+Extras : 
+	class/*.lst : sample configuration files
+	
+	eclaunch-script.sh : launch a single EC2 instance with a
+		startup script (no larger than 16KB)
+		
+
+The scripts assume that the EC2 environment is set 
+(these are examples from my Mac OSX environment)
+	JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Home
+	EC2_HOME=$HOME/utils/ec2-api-tools-1.6.8.0
+	AWS_USER=awsse@maprtech.com
+	AWS_ACCESS_KEY_ID=AKIAI3YUDKTFJDGJ25NA
+	AWS_SECRET_ACCESS_KEY=<go to AWS console to retrieve this>
+
+
+MetaData available during launch:
+	The Amazon framework provides several key details via a REST 
+	interface during instance spin-up.   One's we've used include:
+
+		murl_top=http://169.254.169.254/latest/meta-data
+		murl_attr="${murl_top}/attributes"
+
+		THIS_FQDN=$(curl -f $murl_top/hostname)
+		THIS_HOST=${THIS_FQDN%%.*}
+
+		AMI_IMAGE=$(curl -f $murl_top/ami-id)
+		AMI_LAUNCH_INDEX=$(curl -f $murl_top/ami-launch-index) 
+

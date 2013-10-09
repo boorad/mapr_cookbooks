@@ -1,0 +1,56 @@
+Overview of the MapR EC2 deployment scripts
+
+	Goal : 
+		Deploy a MapR cluster within Amazon EC2 based on
+		a roles-file configuration.
+
+	Logical Flow :
+		- Identify the AWS account you will use
+			- Save the AWS credentials into your environment
+			- Establish a public/private SSH keypair to use for
+			  access to the cluster.   The scripts assume that
+			  the basename for the file is the same as the
+			  label given to the key in AWS ... and that the
+			  key-file is in $HOME/.ssh for the user launching
+			  the cluster.
+		- Create a roles file defining the MapR packages to be deployed.
+			This MUST be a consistent cluster (no error checking is
+			done to ensure, for example, that there is a CLDB node
+			and an odd number of zookeepers).
+		- Run the launch-*-cluster.sh script with the proper arguments.
+
+			The script performs the following operations for clusters
+			where every node has a public IP (the default)
+				1. Create <n> EC2 instances, based on the number of
+				   entries in the roles file
+				2. Pass the launch-mapr-instance.sh script into each
+				   node as an initial setup
+				3. Watch for the existence of the MapR user and the
+				   presence of the launch-mapr.log file (indicating
+				   that the launch-mapr-instance.sh script has 
+				   completed successfully).
+				4. Generate the necessary cluster configuration information
+				   based on the roles file and the private IP addresses
+				   of the newly spawned nodes.
+				5. Copy a parameter file (mapr.parm) to each node with 
+				   the correct configuration details and the desired
+				   MapR software packages.
+				6. Execute the congfigure-mapr-instance.sh script to
+				   install all MapR software and start up the cluster.
+				7. Extra steps
+					a. Copy ssh keys to facilitate MCS usage and 
+					   clush administration.
+					b. Create a "host mapping file" for use on the client
+					   to properly map private host names of the cluster
+					   node to public IP addresses.
+
+			The logic is slightly different for a cluster deployed in
+			an Amazon VPC.   Additional configuration is done on node0 
+				1. An Elastic IP address is assigned to that node
+				2. The node is configured as a NAT gateway
+			The rest of the installation process proceeds pretty much 
+			as described above, though driven by the 
+			configure-vpc-cluster.sh script from node0 (since it is 
+			the only node with network access to the other cluster nodes).
+
+
