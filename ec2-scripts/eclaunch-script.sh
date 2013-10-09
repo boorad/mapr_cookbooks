@@ -21,7 +21,6 @@
 # Known x86_64 AMI's for us-west-1
 #	ami-51c3e614
 #	ami-2862436d	CentOS 6.3 (minimal) ebs (login ec2-user)
-#	ami-89ddf3cc
 #	ami-89ddf3cc	Ubuntu 12.04 from MapR training (no disks)
 #
 # Known x86_64 AMI's for us-west-2
