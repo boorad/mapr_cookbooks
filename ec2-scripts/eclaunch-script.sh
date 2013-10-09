@@ -32,6 +32,8 @@
 #   ami-ccaf20fc    CentOS 6.3 (cloud-init)  ebs
 #   ami-72ce4642    CentOS 6.3 (minimal)  ebs
 #   ami-800d86b0    CentOS 6.3 instance-store boot (client login is root)
+#	ami-ec30a5dc	CentOS 6.4 + cloud-init (su login: ec2-user) (no EBS)
+#	ami-b3bf2f83	CentOS 6.4 (su login: ec2-user)
 #   ami-aa06939a    CentOS 6.4 (for instance types requiring HVM)
 #   ami-8e109ebe    Ubuntu 12.04 (cloud guest) ebs
 #   ami-4ac9437a    Ubuntu 12.04 (works with m3 and m2 instance types)
@@ -53,8 +55,8 @@ THIS_SCRIPT=$0
 MAPR_LAUNCH_SCRIPT=launch-mapr-instance.sh
 
 machinetype=m1.large
-region=eu-west-1
-ec2keypair=tucker-se
+region=us-west-2
+ec2keypair=tucker-eng
 # ec2keypair=students07172012			# training@maprtech.com AWS account
 
 # group=${group:-"sg-61031a0d"}			# Default VPC for AWSENG, if we need it
