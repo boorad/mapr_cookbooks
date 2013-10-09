@@ -98,6 +98,7 @@ usage() {
        [ --sgroup ec2-security-group ]
        [ --license-file <license to be installed> ]
        [ --data-disks <# of ephemeral disks to FORCE into the AMI> ]
+       [ --persistent-disks <# disks>x<disk_size> ]
        [ --nametag <uniquifying cluster tag> ]
        [ --days-to-live <max lifetime> ]
    "
@@ -558,7 +559,7 @@ finalize_public_cluster() {
 		echo "    $ntag: $pub_name (${priv_name%%.*})"
 		echo "$pub_ip	${NODE_NAME_ROOT}${ami_index}  ${priv_name%%.*}  ${pub_name%%.*}  $ntag" >> $cluster_hosts_file
 
-		if [ -n "${daysToLive:-}" ] ; then
+		if [ -n "${daysToLive:-}" -a $pub_ip = "${pub_ip#unknown_}" ] ; then
 			if [ $ec2user = "root" ] ; then
 				ssh $MY_SSH_OPTS ${ec2user}@${pub_ip} \
 					-n "echo 'shutdown -Py now' | at now +$daysToLive days" &> /dev/null
@@ -660,6 +661,7 @@ do
   --zone)         zone=$2 ;;
   --sgroup)       sgroup=$2 ;;
   --data-disks)   dataDisks=$2 ;;
+  --persistent-disks)   dataDisks=$2 ;;
   --license-file) licenseFile=$2 ;;
   --nametag)      nametag=$2 ;;
   --days-to-live) daysToLive=$2 ;;
@@ -676,19 +678,16 @@ echo "Validating command line arguments"
 echo ""
 
 # Defaults for simpler testing
-maprversion=${maprversion:-"2.1.3.2"}
+maprversion=${maprversion:-"3.0.1"}
 instancetype=${instancetype:-"m1.large"}
 region=${region:-"us-west-2"}
 ec2keyfile=${ec2keyfile:-"$HOME/.ssh/tucker-eng"}
+
 if [ ${maprversion%%.*} -le 2 ] ; then
 	licenseFile=${licenseFile:-"$HOME/Documents/MapR/licenses/LatestDemoLicense-M5.txt"}
 else
     licenseFile=${licenseFile:-"$HOME/Documents/MapR/licenses/LatestDemoLicense-M7.txt"}
 fi
-
-# for VPC testing
-#	sgroup=${sgroup:-"sg-61031a0d"}
-
 
 # Don't deal with licensing if the file doesn't exist
 [ ! -r ${licenseFile} ] && licenseFile="" 
@@ -832,17 +831,42 @@ echo "Proceeding with MapR cluster deployment at $startTime ..."
 
 
 # Handle very simply for now ... no more than 4 ephemeral disks per
-# instance.
-if [ -n "${dataDisks}"  -a  "${dataDisks:-0}" -gt 0 ] ; then
-	AMI_DISK_CONFIG="-b /dev/sdb=ephemeral0"
-	if [ $dataDisks -ge 2 ] ; then
-		AMI_DISK_CONFIG="$AMI_DISK_CONFIG -b /dev/sdc=ephemeral1"
+# instance and no more than 12 persistent disks.
+#
+#	Remember that persistent disks are represented by "<n>x<size>"
+#	in the dataDisks variable, while ephemeral disks are simply "<n>"
+#
+if [ -n "${dataDisks}"  ] ; then
+	ndisk="${dataDisks%x*}"
+	[ $ndisk != $dataDisks ] && dsize="${dataDisks#*x}"
+
+	if [ -z "$dsize"  -a  "${ndisk:-0}" -gt 0 ] ; then
+		[ ${ndisk} -gt 4 ] && ndisk=4
+
+		AMI_DISK_CONFIG="-b /dev/sdb=ephemeral0"
+		i=1
+		dev=c
+		while [ $i -lt $[ndisk-1] ] ; do
+			AMI_DISK_CONFIG="$AMI_DISK_CONFIG -b /dev/sd${dev}=ephemeral${i}"
+			i=$[i+1]
+			dev=`echo $dev | tr 'a-y' 'b-z'`
+		done
+	elif [ ${dsize:-0} -gt 0  -a  ${ndisk:-0} -gt 0 ] ; then
+		[ ${ndisk} -gt 8 ] && ndisk=8
+		
+		AMI_DISK_CONFIG="--ebs-optimized true"
+		i=0
+		dev=b
+		while [ $i -lt ${ndisk} ] ; do
+			AMI_DISK_CONFIG="$AMI_DISK_CONFIG -b /dev/sd${dev}=:${dsize}"
+			i=$[i+1]
+			dev=`echo $dev | tr 'a-y' 'b-z'`
+		done
 	fi
-	if [ $dataDisks -ge 3 ] ; then
-		AMI_DISK_CONFIG="$AMI_DISK_CONFIG -b /dev/sdd=ephemeral2"
-	fi
-	if [ $dataDisks -ge 4 ] ; then
-		AMI_DISK_CONFIG="$AMI_DISK_CONFIG -b /dev/sde=ephemeral3"
+
+	if [ -n "${AMI_DISK_CONFIG}" ] ; then 
+		echo "	AMI_DISK_CONFIG=${AMI_DISK_CONFIG}" 
+		echo ""
 	fi
 fi
 
