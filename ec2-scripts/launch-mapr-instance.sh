@@ -6,12 +6,13 @@
 #
 # Script to be executed on top of a newly created Linux instance 
 # within a cloud environment to prepare an instance for later execution
-# of configure-mapr-instance script.
+# of configure-mapr-instance.sh script.
 #
 # Expectations:
 #	- Script run as root user (hence no need for permission checks)
 #	- Basic distro differences (APT-GET vs YUM, etc) can be handled
 #	    There are so few differences, it seemed better to manage one script.
+#	- Script MUST remain less than 16K
 #
 # Tested with MapR 2.0.1, 2.1.x, 3.0.x
 #
@@ -34,8 +35,7 @@ LOG=/tmp/launch-mapr.log
 # Extend the PATH just in case ; probably not necessary
 PATH=/sbin:/usr/sbin:/usr/bin:/bin:$PATH
 
-# Helper utility to log the commands that are being run and
-# save any errors to a log file
+# Helper utility to log the commands that are being run and their output
 #	BE CAREFUL ... this function cannot handle command lines with
 #	their own redirection.
 
@@ -52,14 +52,22 @@ c() {
 function add_epel_repo() {
     EPEL_RPM=/tmp/epel.rpm
     CVER=`lsb_release -r | awk '{print $2}'`
-    if [ ${CVER%.*} -eq 5 ] ; then
+    if [ "${CVER%.*}" -eq 5 ] ; then
         EPEL_LOC="epel/5/x86_64/epel-release-5-4.noarch.rpm"
     else
         EPEL_LOC="epel/6/x86_64/epel-release-6-8.noarch.rpm"
     fi
 
-    wget -O $EPEL_RPM http://download.fedoraproject.org/pub/$EPEL_LOC
-    [ $? -eq 0 ] && rpm --quiet -i $EPEL_RPM
+	epel_def=/etc/yum.repos.d/epel.repo
+    if [ -f $epel_def ] ; then
+		grep -q "^enabled=1" $epel_def
+		if [ $? -ne 0 ] ; then
+			sed -i '0,/^enabled=0/s/enabled=0/enabled=1/' $epel_def
+		fi
+	else 
+    	wget -O $EPEL_RPM http://download.fedoraproject.org/pub/$EPEL_LOC
+    	[ $? -eq 0 ] && rpm --quiet -i $EPEL_RPM
+	fi
 }
 
 function update_os_deb() {
@@ -87,16 +95,24 @@ function update_os_rpm() {
 	yum install -y unzip
 	yum install -y realpath
 
-	yum install -y syslinux sdparm
+	yum install -y syslinux 
 	yum install -y nmap sysstat
 
 	yum install -y clustershell pdsh
+
+		# For Amazon Linux, sdparm is a problem; test here and
+		# grab from rpmforge if needed.
+	yum install -y sdparm 
+	if [ $? -ne 0 ] ; then
+    	SDPARM_RPM=/tmp/sdparm.rpm
+    	wget -O $SDPARM_RPM http://pkgs.repoforge.org/sdparm/sdparm-1.08-1.el6.rfx.x86_64.rpm
+    	[ $? -eq 0  ] && rpm --quiet -i $SDPARM_RPM
+	fi
 }
 
 # Make sure that NTP service is sync'ed and running
 # Key Assumption: the /etc/ntp.conf file is reasonable for the 
-#	hosting cloud platform.   We could shove our own NTP servers into
-#	place, but that seems like a risk.
+# hosting cloud platform.
 function update_ntp_config() {
 	echo "  updating NTP configuration" >> $LOG
 
@@ -115,8 +131,6 @@ function update_ntp_config() {
 	ntpdate pool.ntp.org
 	$SERVICE_SCRIPT start
 
-		# TBD: copy in /usr/share/zoneinfo file based on 
-		# zone in which the instance is deployed
 	zoneInfo=$(curl -f ${murl_top}/placement/availability-zone)
 	curZone=`basename "${zoneInfo}"`
 	curTZ=`date +"%Z"`
@@ -262,10 +276,10 @@ function install_java() {
 	#
   javacmd=`which java`
   if [ $? -eq 0 ] ;  then
-	echo "Java already installed on this instance" >> $LOG
+	echo "JRE (and possibly JDK) already installed on this instance" >> $LOG
   	java -version 2>&1 | head -1 >> $LOG
 
-		# We could be linked to the JRE or JDK version; we want
+		# We could be linked to the JRE or JDK version; we need
 		# the REAL jdk, so look for javac in the directory we choose
 	jcmd=`python -c "import os; print os.path.realpath('$javacmd')"`
 	if [ -x ${jcmd%/jre/bin/java}/bin/javac ] ; then
@@ -286,7 +300,7 @@ function install_java() {
 		return 0
 	fi
 
-	echo "Could not identify JAVA_HOME; will install Java ourselves" >> $LOG
+	echo "Could not identify JAVA_HOME; will install JDK ourselves" >> $LOG
   fi
 
   attempts=0
@@ -526,9 +540,7 @@ function do_initial_install()
 	update_root_user
 	retCode=$?
 
-		# Last thing we do is restart ssh; no need to track
-		# error status on this ... nothing we could do with the
-		# error anyway.
+		# Last thing we do is restart ssh (ignoring errors)
 	restart_ssh
 
 	return $retCode
@@ -551,9 +563,6 @@ function main()
 		fi
 
 			# As a last act, copy this script into ~${MAPR_USER}.
-			# We may re-use the script if an AMI is generated
-			# after its execution ... and it's also just a 
-			# good practice for keeping track of the activity.
 		MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
 		cp $0 $MAPR_USER_DIR/launch-mapr-instance.sh
 		if [ $? -eq 0 ] ; then

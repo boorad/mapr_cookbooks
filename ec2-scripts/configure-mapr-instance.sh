@@ -55,6 +55,7 @@ MAPR_HOME=/opt/mapr
 MAPR_UID=${MAPR_UID:-2000}
 MAPR_USER=${MAPR_USER:-mapr}
 MAPR_GROUP=`id -gn ${MAPR_USER}`
+MAPR_GROUP=${MAPR_GROUP:-mapr}
 MAPR_PASSWD=${MAPR_PASSWD:-MapR}
 MAPR_METRICS_DEFAULT=metrics
 
@@ -63,7 +64,7 @@ MAPR_HADOOP_DIR=${MAPR_HOME}/hadoop/hadoop-0.20.2
 
 LOG=/tmp/configure-mapr.log
 
-# Extend the PATH just in case ; probably not necessary
+# Make sure sbin tools are in PATH
 PATH=/sbin:/usr/sbin:/usr/bin:/bin:$PATH
 
 # Helper utility to log the commands that are being run and
@@ -315,7 +316,8 @@ install_mapr_packages() {
 	echo Installing MapR software components >> $LOG
 	
 	if which dpkg &> /dev/null; then
-		MAPR_INSTALLED=`dpkg --list mapr-* | grep ^ii | awk '{print $2}'`
+#		MAPR_INSTALLED=`dpkg --list mapr-* | grep ^ii | awk '{print $2}'`
+		MAPR_INSTALLED=`dpkg --get-selections mapr-* | grep ^ii | awk '{print $2}'`
 	elif which rpm &> /dev/null; then
 		MAPR_INSTALLED=`rpm -q --all --qf "%{NAME}\n" | grep ^mapr `
 	else
@@ -367,6 +369,8 @@ install_mapr_packages() {
 	update-env-sh JAVA_HOME $JAVA_HOME
 
 	echo MapR software installation complete >> $LOG
+
+	return 0
 }
 
 function regenerate_mapr_hostid() {
@@ -447,7 +451,7 @@ find_mapr_disks() {
 		[ $? -eq 0 ] && continue
 
 		if which pvdisplay &> /dev/null; then
-			pvdisplay $dev 2> /dev/null
+			pvdisplay $dev &> /dev/null
 			[ $? -eq 0 ] && continue
 		fi
 
@@ -491,7 +495,11 @@ provision_mapr_disks() {
 	find_mapr_disks
 	if [ -n "$MAPR_DISKS" ] ; then
 		for d in $MAPR_DISKS ; do echo $d ; done >> $diskfile
-		c $MAPR_HOME/server/disksetup -M -F $diskfile
+		$MAPR_HOME/server/disksetup -M -F $diskfile
+
+			# Archive the diskfile so we can reuse later
+		MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
+		cp $diskfile $MAPR_USER_DIR
 	else
 		echo "No unused disks found" >> $LOG
 		if [ -n "$MAPR_DISKS_PREREQS" ] ; then
@@ -509,6 +517,7 @@ provision_mapr_disks() {
 	fi
 
 }
+
 
 # Initializes MySQL database if necessary.
 #
@@ -531,7 +540,7 @@ configure_mapr_metrics() {
 	[ -z "${MAPR_METRICS_SERVER:-}" ] && return 0
 	[ -z "${MAPR_METRICS_DB:-}" ] && return 0
 
-	if which yum &> /dev/null; then
+	if which yum &> /dev/null ; then
 		yum list soci-mysql > /dev/null 2> /dev/null
 		if [ $? -ne 0 ] ; then 
 			echo "Skipping metrics configuration; missing dependencies" >> $LOG
@@ -600,10 +609,10 @@ configure_mapr_services() {
 	WARDEN_CONF_FILE=${MAPR_HOME}/conf/warden.conf
 
 # give MFS more memory -- only on slaves, not on masters
-#sed -i 's/service.command.mfs.heapsize.percent=.*$/service.command.mfs.heapsize.percent=35/'
+#sed -i 's/service.command.mfs.heapsize.percent=.*$/service.command.mfs.heapsize.percent=35/' $MFS_CONF_FILE
 
 # give CLDB more threads 
-# sed -i 's/cldb.numthreads=10/cldb.numthreads=40/' $MAPR_HOME/conf/cldb.conf
+# sed -i 's/cldb.numthreads=10/cldb.numthreads=40/' $CLDB_CONF_FILE
 
 		# Disable central configuration (spinning up Java processes
 		# every 5 minutes doesn't help; we'll run it on our own
@@ -618,6 +627,14 @@ configure_mapr_services() {
 		# name resolution, it's OK to use short hostnames
 	sed -i 's/ --fqdn//' $MAPR_HOME/initscripts/mapr-warden
 
+		# Fix for bug 11649 ; only seen with Debian/Ubuntu ... but
+		# we'll do it for everyone
+	if [ ${MAPR_VERSION%%.*} -ge 3 ] ; then
+		if [ -f $MAPR_HOME/initscripts/mapr-cldb ] ; then
+			sed -i 's/XX:ThreadStackSize=160/XX:ThreadStackSize=256/' \
+				$MAPR_HOME/initscripts/mapr-cldb
+		fi
+	fi
 }
 
 # Simple script to add useful parameters to the 
@@ -633,7 +650,7 @@ update_site_config() {
 	CORE_CONF_FILE=${HADOOP_CONF_DIR}/core-site.xml
 
 		# core-site changes need to include namespace mappings
-    sudo sed -i '/^<\/configuration>/d' ${CORE_CONF_FILE}
+    sed -i '/^<\/configuration>/d' ${CORE_CONF_FILE}
 
 	echo "
 <property>
@@ -642,12 +659,12 @@ update_site_config() {
 </property>" | sudo tee -a ${CORE_CONF_FILE}
 
 	echo "" | sudo tee -a ${CORE_CONF_FILE}
-	echo '</configuration>' | sudo tee -a ${CORE_CONF_FILE}
+	echo '</configuration>' | tee -a ${CORE_CONF_FILE}
 
 }
 
 #
-#  Wait until DNS can find all the masters
+#  Wait until DNS can find all the zookeeper nodes
 #	Should put a timeout ont this ... it's really not well designed
 #
 function resolve_zknodes() {
@@ -730,6 +747,7 @@ create_metrics_db() {
 		# Install MySQL, update MySQL config and restart the server
 	MYSQL_OK=1
 	if  which dpkg &> /dev/null ; then
+		export DEBIAN_FRONTEND=noninteractive
 		apt-get install -y mysql-server mysql-client
 
 		MYCNF=/etc/mysql/my.cnf
@@ -801,6 +819,12 @@ create_metrics_db() {
 			    sedArg="`echo "$MYSQL_DATA_DIR" | sed -e 's/\//\\\\\//g'`"
 				sed -e "s/^datadir[ 	=].*$/datadir = ${sedArg}/g" \
 					-i".localdata" $MYCNF 
+
+                    # Default MySql 5.5 has innodb, but doesn't
+					# specify a data file.  We'll do it here
+					# if we see InnoDB in the MYCNF file
+				sed -e "/^#.*InnoDB$/a\
+innodb_data_file_path=ibdata1:10M:autoextend:max:1024M" $MYCNF
 
 					# On Ubuntu, AppArmor gets in the way of
 					# mysqld writing to the NFS directory; We'll 
@@ -927,9 +951,53 @@ function start_mapr_services()
 
 	if [ ${HDFS_ONLINE} -eq 0 ] ; then
 		echo "ERROR: MapR File Services did not come on-line" >> $LOG
-		exit 1
+		return 1
+	fi
+
+	return 0
+}
+
+
+# Archive the SSH keys into the cluster; we'll pull 
+# them down later.  When all nodes are spinning up at the
+# same time, this 'mostly' works to distribute keys ...
+# since everyone waited for the CLDB to come on line.
+#
+# Root keys for nodes 0 and 1 are distributed; MapR keys
+# for node 0 and all webserver nodes are distributed
+#
+function store_ssh_keys() 
+{
+	echo "Storing ssh keys in MapRFS (if necessary)" >> $LOG
+
+	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
+	clusterKeyDir=/cluster-info/keys
+	rootKeyFile=/root/.ssh/id_rsa.pub
+	maprKeyFile=${MAPR_USER_DIR}/.ssh/id_rsa.pub
+
+	if [ ${AMI_LAUNCH_INDEX:-2} -le 1  -a  -f ${rootKeyFile} ] ; then 
+		echo "  Pushing $rootKeyFile to $clusterKeyDir" >> $LOG
+		hadoop fs -put $rootKeyFile \
+		  $clusterKeyDir/id_rsa_root.${AMI_LAUNCH_INDEX}
+	fi
+	if [ -f ${maprKeyFile} ] ; then
+		if [ -${AMI_LAUNCH_INDEX:-1} -eq 0  -o  -f $MAPR_HOME/roles/webserver ]
+		then
+			echo "  Pushing $maprKeyFile to $clusterKeyDir" >> $LOG
+			hadoop fs -put $maprKeyFile \
+			  $clusterKeyDir/id_rsa_${MAPR_USER}.${AMI_LAUNCH_INDEX}
+		fi 
+	fi
+
+		# if we didn't need to push any keys, lets take a quick sleep here
+		# so that when we call retrieve_ssh_keys later we have a better
+		# chance of actually seeing them
+	if [ ${AMI_LAUNCH_INDEX:-0} -gt 1  -a  ! -f ${MAPR_HOME}/roles/webserver ]
+	then 
+		sleep 10
 	fi
 }
+
 
 # Look to the cluster for shared ssh keys.  This function depends
 # on the cluster being up and happy.  Don't worry about errors
@@ -965,7 +1033,7 @@ function retrieve_ssh_keys()
 		if [ ! -f ${MAPR_USER_DIR}/.ssh/$kf ] ; then
 			hadoop fs -get ${kdir}/${kf} ${MAPR_USER_DIR}/.ssh/$kf
 			cat ${MAPR_USER_DIR}/.ssh/$kf >> ${akFile}
-			chown --reference=${MAPR_USER_DIR}/.bashrc \
+			chown --reference=${MAPR_USER_DIR} \
 				${MAPR_USER_DIR}/.ssh/$kf ${akFile}
 		fi
 	done
@@ -982,36 +1050,11 @@ function finalize_mapr_cluster()
 	if [ $? -ne 0 ] ; then
 		echo "maprcli command not found" >> $LOG
 		echo "This is typical on a client-only install" >> $LOG
-		return
+		return 0
 	fi
 																
 	c maprcli acl edit -type cluster -user ${MAPR_USER}:fc
 
-		# Archive the SSH keys into the cluster; we'll pull 
-		# them down later.  When all nodes are spinning up at the
-		# same time, this 'mostly' works to distribute keys ...
-		# since everyone waited for the CLDB to come on line.
-		#
-		# Root keys for nodes 0 and 1 are distributed; MapR keys
-		# for node 0 and all webserver nodes are distributed
-	MAPR_USER_DIR=`eval "echo ~${MAPR_USER}"`
-	clusterKeyDir=/cluster-info/keys
-	rootKeyFile=/root/.ssh/id_rsa.pub
-	maprKeyFile=${MAPR_USER_DIR}/.ssh/id_rsa.pub
-
-	if [ ${AMI_LAUNCH_INDEX:-2} -le 1  -a  -f ${rootKeyFile} ] ; then 
-		echo "Pushing $rootKeyFile to $clusterKeyDir" >> $LOG
-		hadoop fs -put $rootKeyFile \
-		  $clusterKeyDir/id_rsa_root.${AMI_LAUNCH_INDEX}
-	fi
-	if [ -f ${maprKeyFile} ] ; then
-		if [ -${AMI_LAUNCH_INDEX:-1} -eq 0  -o  -f $MAPR_HOME/roles/webserver ]
-		then
-			echo "Pushing $maprKeyFile to $clusterKeyDir" >> $LOG
-			hadoop fs -put $maprKeyFile \
-			  $clusterKeyDir/id_rsa_${MAPR_USER}.${AMI_LAUNCH_INDEX}
-		fi 
-	fi
 
 	license_installed=0
 	if [ -n "${MAPR_LICENSE_FILE:-}"  -a  -f "${MAPR_LICENSE_FILE}" ] ; then
@@ -1044,10 +1087,7 @@ function finalize_mapr_cluster()
 	if [ ${AMI_LAUNCH_INDEX:-1} -eq 0 ] ; then 
 		echo "Creating /user/${MAPR_USER} in configured cluster" >> $LOG
 
-		maprcli volume create \
-			-name ${MAPR_USER}_home -user ${MAPR_USER}:fc \
-			-path /user/$MAPR_USER -createparent true \
-			-replicationtype low_latency
+		su $MAPR_USER -c "maprcli volume create -name ${MAPR_USER}_home -path /user/$MAPR_USER -createparent true -replicationtype low_latency"
 	
 		if [ $? -ne 0 ] ; then
 			echo "Error: unable to create /user directory for $MAPR_USER" >> $LOG
@@ -1337,8 +1377,8 @@ function main()
 
 	provision_mapr_disks
 
-		# Most of the time in Amazon we DO NOT want to
-		# auto-start ... so we'll control that here.
+		# Most of the time in virtual environments we DO NOT
+		# want to auto-start ... so we'll control that here.
 	if [ -z "${AMI_IMAGE}" ] ; then
 		enable_mapr_services
 	else
@@ -1349,6 +1389,8 @@ function main()
 	if [ $? -eq 0 ] ; then
 		start_mapr_services
 		[ $? -ne 0 ] && return $?
+
+		store_ssh_keys
 
 		finalize_mapr_cluster
 

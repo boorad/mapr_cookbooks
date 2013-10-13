@@ -93,6 +93,13 @@ do
 	ec2-authorize $secgroup "$@" -P tcp -p $port -s 0.0.0.0/0
 done
 
+# Lastly, allow 80 and 443 egress (otherwise you may not be able
+# to talk http:// out to get useful stuff)
+for port in 80 443
+do
+	ec2-authorize $secgroup "$@" --egress -P tcp -p $port -s 0.0.0.0/0
+done
+
 echo ""
 echo "Final status of Security Group"
 ec2-describe-group $secgroup "$@"
