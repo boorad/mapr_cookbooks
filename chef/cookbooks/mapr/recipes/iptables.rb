@@ -6,4 +6,8 @@
 #
 
 # firewall
-iptables_rule "mapr_ports"
+if platform?("redhat", "centos")
+
+  iptables_rule "mapr_ports"
+
+end

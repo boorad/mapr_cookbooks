@@ -5,6 +5,4 @@
 # Copyright 2013, MapR Technologies
 #
 
-package "mapr-cldb" do
-  options "--allow-unauthenticated"
-end
+package "mapr-cldb"

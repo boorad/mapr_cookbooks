@@ -17,6 +17,7 @@ default[:mapr][:repo_url] = "http://package.mapr.com/releases"
 
 default[:mapr][:node][:disks] = ["/dev/sdb","/dev/sdc","/dev/sdd"]
 
+# TODO: move each port into its corresponding service recipe.
 default[:mapr][:ports] = [
                           7222,
                           7220,

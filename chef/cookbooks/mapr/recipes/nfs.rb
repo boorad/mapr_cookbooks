@@ -9,6 +9,4 @@
 # TODO: Ubuntu package "nfs-common"
 # TODO: SUSE   package "nfs-client"
 
-package "mapr-nfs" do
-  options "--allow-unauthenticated"
-end
+package "mapr-nfs"
