@@ -1,0 +1,1 @@
+- delete everything from this chef repo that fabric doesn't move over

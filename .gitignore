@@ -4,6 +4,6 @@ fabric/*.json
 .DS_Store
 
 .vagrant
-Vagrantfile
+Vagrantfile*
 create-local-repo.txt
 *gist*

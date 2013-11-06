@@ -3,3 +3,4 @@
 .vagrant
 Vagrantfile*
 example.json
+dep_cookbooks/*
