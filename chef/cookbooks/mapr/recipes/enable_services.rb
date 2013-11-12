@@ -6,10 +6,11 @@
 #
 
 # enable zookeeper and warden services
-service "mapr_zookeeper" do
-  action :enable
+service "mapr-zookeeper" do
+  action [ :enable, :stop ]
+  only_if {File.exists?("/etc/init.d/mapr-zookeeper")}
 end
 
-service "mapr_warden" do
-  action :enable
+service "mapr-warden" do
+  action [ :enable, :stop ]
 end

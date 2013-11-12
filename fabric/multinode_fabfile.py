@@ -9,7 +9,7 @@ MAPR_PACKAGE_URL="http://package.mapr.com/releases"
 PLATFORM = "redhat"
 
 # for DEV
-env.hosts = ["i1"]
+env.hosts = ["i2"]
 env.user = 'vagrant'
 env.password = 'vagrant'
 
@@ -17,9 +17,9 @@ env.password = 'vagrant'
 ## composite phase tasks
 ##
 def phase_1():
-    set_hosts()
+#    set_hosts()
 #    set_creds()
-#    install_omnibus_chef()
+    install_omnibus_chef()
     make_mapr_install_chef_dir()
     generate_manifests()
     copy_manifests()
@@ -29,17 +29,22 @@ def phase_1():
 def phase_2():
     package_install()
 
-def test():
-    package_install()
+def phase_3():
+    configure()
+
+def phase_4():
+    start_services()
+
 
 
 ##
 ## supporting sub-tasks
 ##
-def set_hosts():
-    env.hosts = manifests.get_hosts()
-    env.ips = manifests.get_ips()
 
+#def set_hosts():
+#    env.hosts = manifests.get_hosts()
+#    env.ips = manifests.get_ips()
+#
 #def set_creds():
 #    env.user, env.password = manifests.get_creds()
 
@@ -57,8 +62,7 @@ def generate_manifests():
     manifests.generate()
 
 def copy_manifests():
-    # phase 1 manifest
-    manifest = get_phase1_manifest()
+    manifest = get_node_manifest()
     put(manifest, INSTALL_DIR)
 
 def copy_chef_bits():
@@ -66,7 +70,7 @@ def copy_chef_bits():
     put("../chef/roles", CHEF_DIR)
     put("../chef/solo.rb", CHEF_DIR)
     # for dev
-    local("cd ../chef/cookbooks/mapr && berks install --path ../../dep_cookbooks")
+    #local("cd ../chef/cookbooks/mapr && berks install --path ../../dep_cookbooks")
     put("../chef/dep_cookbooks/*", COOKBOOK_DIR)
 
 def download_mapr_packages():
@@ -83,22 +87,31 @@ def download_mapr_packages():
 
 def create_local_repo():
     download_mapr_packages()
-    #
 
 def package_install():
-    manifest = get_phase1_manifest()
-    chef_solo(manifest)
+    chef_solo()
 
+def configure():
+    chef_solo("role[mapr_configure]")
+
+def start_services():
+    pass
 
 ##
 ## utility functions
 ##
-def get_phase1_manifest():
+def get_node_manifest():
     return "%s_manifest.json" % env.host_string
 
 def get_repo_manifest():
     return "local_repo.json"
 
-def chef_solo(manifest):
+def chef_solo(runlist=None):
+    manifest = get_node_manifest()
+    rl = ""
+    if runlist:
+        rl = " -o %s" % runlist
+
     with cd(CHEF_DIR):
-        sudo("chef-solo -c %s/solo.rb -j %s/%s" % (CHEF_DIR, INSTALL_DIR, manifest))
+        sudo("chef-solo -c %s/solo.rb -j %s/%s%s"
+             % (CHEF_DIR, INSTALL_DIR, manifest, rl))

@@ -11,7 +11,27 @@
               "host": "i1",
               "fqdn": "i1.cluster.com",
               "disks": ["/dev/sdb","/dev/sdc","/dev/sdd"],
-              "roles": ["mapr_control_node", "mapr_data_node"] }
+              "roles": ["mapr_control_node", "mapr_data_node", "mapr_client_node"] },
+            { "ip": "192.168.33.12",
+              "host": "i2",
+              "fqdn": "i2.cluster.com",
+              "disks": ["/dev/sdb","/dev/sdc","/dev/sdd"],
+              "roles": ["mapr_data_node"] },
+            { "ip": "192.168.33.13",
+              "host": "i3",
+              "fqdn": "i3.cluster.com",
+              "disks": ["/dev/sdb","/dev/sdc","/dev/sdd"],
+              "roles": ["mapr_data_node"] },
+            { "ip": "192.168.33.14",
+              "host": "i4",
+              "fqdn": "i4.cluster.com",
+              "disks": ["/dev/sdb","/dev/sdc","/dev/sdd"],
+              "roles": ["mapr_data_node"] },
+            { "ip": "192.168.33.15",
+              "host": "i5",
+              "fqdn": "i5.cluster.com",
+              "disks": ["/dev/sdb","/dev/sdc","/dev/sdd"],
+              "roles": ["mapr_data_node"] }
         ]
     }
 }

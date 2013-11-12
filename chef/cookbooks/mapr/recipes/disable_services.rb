@@ -6,10 +6,11 @@
 #
 
 # disable zookeeper and warden services
-service "mapr_zookeeper" do
+service "mapr-zookeeper" do
   action :disable
+  only_if {File.exists?("/etc/init.d/mapr-zookeeper")}
 end
 
-service "mapr_warden" do
+service "mapr-warden" do
   action :disable
 end
