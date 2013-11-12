@@ -1,4 +1,5 @@
 
+import sys
 import json
 
 ## api
@@ -89,3 +90,27 @@ def groups(c):
             'zk' : zk,
             'jt' : jt,
             'tt' : tt}
+
+def hosts():
+    print ",".join(get_hosts())
+
+def ips():
+    print ",".join(get_ips())
+
+def usage():
+    print "This is a helper script for the fabfile."
+    print
+    print "usage: python %s COMMAND" % sys.argv[0]
+    print "  COMMAND = hosts, ips"
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        usage()
+    else:
+        command = sys.argv[1]
+        if command == "hosts":
+            hosts()
+        elif command == "ips":
+            ips()
+        else:
+            usage()
