@@ -1,0 +1,17 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "$0" )" && pwd )"
+
+# python virtual environment
+#   TODO: assumes python & pip installed
+sudo pip install virtualenv
+virtualenv python
+source $DIR/python/bin/activate
+pip install fabric
+
+# run fabric commands
+cd "$DIR/fabric"
+HOSTS=`python manifests.py hosts`
+fab -H $HOSTS phase_1
+fab -H $HOSTS phase_2
+fab -H $HOSTS phase_3

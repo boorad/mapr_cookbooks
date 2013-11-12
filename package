@@ -1,0 +1,45 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "$0" )" && pwd )"
+TARGET="$DIR/install_mapr"
+CHEF="$TARGET/chef"
+FABRIC="$TARGET/fabric"
+
+rm -rf $TARGET
+
+#
+# chef bits
+#
+
+mkdir -p $CHEF
+
+cp -R $DIR/chef/cookbooks $CHEF
+cp -R $DIR/chef/roles $CHEF
+cp $DIR/chef/solo.rb $CHEF
+
+cd "$DIR/chef/cookbooks/mapr"
+berks install --path $DIR/chef/dep_cookbooks
+cp -R $DIR/chef/dep_cookbooks/* $CHEF/cookbooks
+
+
+#
+# fabric bits
+#
+
+mkdir -p $FABRIC
+
+cp $DIR/fabric/multinode_fabfile.py $FABRIC/fabfile.py
+cp $DIR/fabric/manifests.py $FABRIC
+cp $DIR/fabric/cluster.json $FABRIC
+
+#
+# install
+#
+
+cp $DIR/install $TARGET
+
+#
+# tarball
+#
+
+tar zcvf install_mapr.tar.gz $TARGET

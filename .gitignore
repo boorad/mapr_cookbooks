@@ -7,3 +7,6 @@ fabric/*.json
 Vagrantfile*
 create-local-repo.txt
 *gist*
+
+install_mapr/*
+python/*
