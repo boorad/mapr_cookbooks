@@ -1,3 +1,4 @@
+import os.path
 from fabric.api import *
 import manifests
 
@@ -8,17 +9,12 @@ MAPR_PACKAGE_URL="http://package.mapr.com/releases"
 
 PLATFORM = "redhat"
 
-# for DEV
-env.hosts = ["i2"]
-env.user = 'vagrant'
-env.password = 'vagrant'
+env.use_ssh_config=True
 
 ##
 ## composite phase tasks
 ##
 def phase_1():
-#    set_hosts()
-#    set_creds()
     install_omnibus_chef()
     make_mapr_install_chef_dir()
     generate_manifests()
@@ -35,18 +31,13 @@ def phase_3():
 def phase_4():
     start_services()
 
+def test():
+    pass
 
 
 ##
 ## supporting sub-tasks
 ##
-
-#def set_hosts():
-#    env.hosts = manifests.get_hosts()
-#    env.ips = manifests.get_ips()
-#
-#def set_creds():
-#    env.user, env.password = manifests.get_creds()
 
 def install_omnibus_chef():
     sudo("curl -L https://www.opscode.com/chef/install.sh | bash")
@@ -70,8 +61,10 @@ def copy_chef_bits():
     put("../chef/roles", CHEF_DIR)
     put("../chef/solo.rb", CHEF_DIR)
     # for dev
-    #local("cd ../chef/cookbooks/mapr && berks install --path ../../dep_cookbooks")
-    put("../chef/dep_cookbooks/*", COOKBOOK_DIR)
+    if os.path.isfile("../DEV"):
+        local("cd ../chef/cookbooks/mapr && berks install "
+              "--path ../../dep_cookbooks")
+        put("../chef/dep_cookbooks/*", COOKBOOK_DIR)
 
 def download_mapr_packages():
     dest = "repo/"
