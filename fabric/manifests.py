@@ -11,7 +11,8 @@ def generate():
         n = node["host"]
         print "generating manifests for %s" % n
         m = {'run_list' : run_list(node),
-             'mapr'    : mapr(c, node)}
+             'mapr'     : mapr(c, node),
+             'java'     : java(c)}
         out = open("%s_manifest.json" % n, 'w')
         out.write(json.dumps(m))
         out.close()
@@ -54,6 +55,9 @@ def mapr(c, n):
            'nodes'   : nodes(c),
            'groups'  : groups(c)}
     return ret
+
+def java(c):
+    return c["java"]
 
 def nodes(c):
     ret = []
