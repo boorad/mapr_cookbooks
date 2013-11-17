@@ -1,5 +1,5 @@
 fabric/*.pyc
-fabric/*.json
+fabric/*.json*
 
 .DS_Store
 
@@ -9,4 +9,7 @@ create-local-repo.txt
 *gist*
 
 install_mapr/*
+install_mapr.tar*
 python/*
+
+Berksfile.lock
