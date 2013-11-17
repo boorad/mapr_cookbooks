@@ -1,7 +1,8 @@
 #!/bin/bash
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
-TARGET="$DIR/install_mapr"
+INSTALL="install_mapr"
+TARGET="$DIR/$INSTALL"
 CHEF="$TARGET/chef"
 FABRIC="$TARGET/fabric"
 
@@ -42,4 +43,5 @@ cp $DIR/install $TARGET
 # tarball
 #
 
-tar zcvf install_mapr.tar.gz $TARGET
+cd $DIR
+tar zcf $DIR/$INSTALL.tar.gz $INSTALL
