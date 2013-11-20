@@ -4,12 +4,17 @@ DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 # python virtual environment
 #   TODO: assumes python & pip installed
+#   TODO: assumes python-devel (CentOS)
+#   TODO: assumes gcc
+
 sudo pip install virtualenv
 virtualenv python
 source $DIR/python/bin/activate
 pip install fabric
 
 # run fabric commands
+#   TODO: for EC2 - add to fabric/fabfile.py: env.key_filename = '/path/to/keyfile.pem'
+
 cd "$DIR/fabric"
 HOSTS=`python manifests.py hosts`
 fab -H $HOSTS phase_1
