@@ -1,0 +1,6 @@
+# Simple M7 cluster with MapReduce support; single master, 3 workers
+#
+node1:zookeeper,cldb,jobtracker,webserver,fileserver,tasktracker,nfs,hbase
+node2:fileserver,tasktracker,nfs,hbase
+node3:fileserver,tasktracker,nfs,hbase
+node4:fileserver,tasktracker,nfs,hbase
