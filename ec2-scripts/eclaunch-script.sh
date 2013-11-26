@@ -28,18 +28,20 @@
 #   ami-8a25a9ba    RedHat 6.3  ebs  (NOT cloud-init)
 #   ami-123ab122    RedHat 6.3  ebs  (NOT cloud-init)
 #	ami-3a79f30a	CentOS 6.3  ebs   (NOT cloud-init)
-#   ami-ccaf20fc    CentOS 6.3 (cloud-init)  ebs
+#   ami-ccaf20fc    CentOS 6.3 (cloud-init)  ebs	!!! FIXED HOSTNAME !!
 #   ami-72ce4642    CentOS 6.3 (minimal)  ebs
 #   ami-800d86b0    CentOS 6.3 instance-store boot (client login is root)
 #	ami-ec30a5dc	CentOS 6.4 + cloud-init (su login: ec2-user) (no EBS)
-#	ami-b3bf2f83	CentOS 6.4 (su login: ec2-user)
+#	ami-1064f120	CentOS 6.4 + cloud-init (su login: ec2-user) (no default disks)
+#	ami-b3bf2f83	CentOS 6.4 (su login: ec2-user) (marketplace required)
 #   ami-aa06939a    CentOS 6.4 (for instance types requiring HVM)
 #   ami-8e109ebe    Ubuntu 12.04 (cloud guest) ebs
 #   ami-4ac9437a    Ubuntu 12.04 (works with m3 and m2 instance types)
 #   ami-f0109ec0    Ubuntu 12.04 (for instance types requiring HVM)
 #	ami-feb931ce 	Ubuntu 12.04 with Java already installed 
 #						(DANGER ... /mnt in use by agentcontroller.sh, so it
-#						 cannot be unmountef for use by MFS)
+#						 cannot be unmounted for use by MFS)
+#   ami-ace67f9c    Ubuntu 13.10 (cloud guest) ebs
 #
 #	ami-6d29b85d 	VPC-NAT AMI ... specific support for NAT within VPC
 #
@@ -51,7 +53,7 @@
 
 THIS_SCRIPT=$0
 
-MAPR_LAUNCH_SCRIPT=launch-mapr-instance.sh
+# MAPR_LAUNCH_SCRIPT=launch-mapr-instance.sh
 
 machinetype=m1.large
 region=us-west-2
@@ -135,6 +137,7 @@ if [ -n "${MAPR_LAUNCH_SCRIPT}" ] ; then
 	fi
 fi
 
+AMI_DISK_CONFIG="-b /dev/sdb=ephemeral0 -b /dev/sdc=ephemeral1"
 
 RI_OUT=eri_$$.out
 rm -f $RI_OUT
@@ -143,6 +146,7 @@ ec2-run-instances \
 	--key $ec2keypair \
 	${UD_ARG:-} \
 	--instance-type $machinetype \
+	${AMI_DISK_CONFIG:-} \
 	${SG_ARG:-} \
 	--region $region \
 	--availability-zone ${region}b | tee $RI_OUT
