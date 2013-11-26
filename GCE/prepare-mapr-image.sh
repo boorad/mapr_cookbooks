@@ -97,6 +97,7 @@ c() {
 function add_epel_repo() {
     EPEL_RPM=/tmp/epel.rpm
     CVER=`lsb_release -r | awk '{print $2}'`
+    CVER=${CVER:-6}
     if [ ${CVER%.*} -eq 5 ] ; then
         EPEL_LOC="epel/5/x86_64/epel-release-5-4.noarch.rpm"
     else
