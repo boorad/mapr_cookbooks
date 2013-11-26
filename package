@@ -31,7 +31,7 @@ mkdir -p $FABRIC
 
 cp $DIR/fabric/multinode_fabfile.py $FABRIC/fabfile.py
 cp $DIR/fabric/manifests.py $FABRIC
-cp $DIR/fabric/cluster.json $FABRIC
+cp $DIR/fabric/cluster.json.example $FABRIC
 
 #
 # install
