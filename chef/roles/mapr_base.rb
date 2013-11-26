@@ -3,8 +3,9 @@ description "MapR Base Role"
 run_list(
   "role[java]",
   "recipe[ntp]",
-  "recipe[hostname]",
   "recipe[iptables]",
+  "recipe[mapr::hostname]",
+  "recipe[hostname]",
   "recipe[mapr::user_mapr]",
   "recipe[mapr::dns]",
   "recipe[mapr::ulimit]",

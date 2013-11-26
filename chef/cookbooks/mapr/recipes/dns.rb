@@ -10,10 +10,7 @@ hostsfile_entry '127.0.1.1' do
   action :remove
 end
 
-
-# nodes in cluster
-#nodes = search(:node, "*:*")
-
+# /etc/hosts entries
 node[:mapr][:nodes].each do |n|
 
   hostsfile_entry n[:ip] do
