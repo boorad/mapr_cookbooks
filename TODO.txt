@@ -16,3 +16,5 @@
 - add 'fc' permissions to mapr user
 
 - install clush on installer node, with proper groups & sudo
+
+- passwd on mapr user
