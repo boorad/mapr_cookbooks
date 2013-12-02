@@ -8,7 +8,7 @@ launch a cluster in the Amazon EC2 environment.
 
 EXAMPLES :
 	Simple deployment, public network with ephemeral disks
-		./launch-class-cluster.sh \
+		./launch-se-cluster.sh \
 			--cluster MapR_Pub \
 			--mapr-version 3.0.1 \
 			--config-file class/5node.lst \
@@ -25,6 +25,9 @@ EXAMPLES :
 				the current directory and $HOME/.ssh.   The base name
 				of the key file must match the KeyPair name in the
 				Amazon account.
+
+				WARNING: be sure the permissions on your key-file
+				are set to 600 to ensure proper behavior of ssh
 
 		Storage Options (applied equally to all nodes):
 			--data-disks <n>			: allocate <n> ephemeral disks (max 4)

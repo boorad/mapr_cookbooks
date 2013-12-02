@@ -757,6 +757,15 @@ if [ -z "${MY_SSH_KEY}" ] ; then
 	echo "Error: SSH KeyFile not found"
 	echo "    (script checks for ${ec2keyfile} and ${ec2keyfile}.pem)"
 	exit 1
+else		# File exists ... test permssions
+		# This is a kludge, since bash has no easy way to test
+		# the GROUP and OTHER permissions on a file
+	ssh -i $MY_SSH_KEY -o BatchMode=yes localhost 2>&1 | grep -q "UNPROTECTED PRIVATE KEY FILE"
+	if [ $? -eq 0 ] ; then
+		echo "Error: SSH KeyFile permissions are too open"
+		echo "    change to read-write for USER only"
+		exit 1
+	fi
 fi
 
 	# We may need to strip off the file suffix ... so check for both
