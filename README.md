@@ -1,14 +1,24 @@
-private-mapr-deployments
-========================
+#mapr deployments
 
-Prep Each Node
-==============
 
-1. At shell, type:
+This repository contains a few different options for deploying MapR Hadoop clusters.  The one furthest along is orchestrated by Fabric, and uses Chef on each node to execute the deployment.
 
-    > sudo groupadd -g 2222 mapr
-    > sudo useradd -g mapr -m -u 2222 mapr
-    > sudo passwd mapr
-    (set password)
+##Assumptions
 
-2. Copy ssh public key contents to /home/mapr/.ssh/authorized_keys
+* A user on each node, allowing ssh and sudo
+* Berkshelf Ruby gem installed on packaging machine
+
+##Process
+
+###Prepare
+
+    ./package
+Copy the tarball somewhere, and expand it.
+
+###Edit
+
+In the packaged folder (from the tarball above), edit cluster.json to suit your cluster.
+
+###Execute
+
+    ./install
