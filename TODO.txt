@@ -2,6 +2,7 @@
 
 - do nfs recipe todo for each platform
 - rpcbind started for NFS service?  Centos def... but Ubuntu as well?
+- rpcbind service start by default
 
 - .bashrc for install user and mapr user, not just root
 
@@ -17,4 +18,8 @@
 
 - install clush on installer node, with proper groups & sudo
 
-- passwd on mapr user
+- passwd on mapr user (only webserver?  or all nodes?)
+
+- integrate Tucker's prepare-mapr-chef.sh script
+
+- sshd_config ... add mapr to AllowGroups
