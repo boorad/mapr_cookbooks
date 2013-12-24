@@ -5,8 +5,16 @@
 # Copyright 2013, MapR Technologies
 #
 
-# TODO: CentOS package "nfs-utils"
-# TODO: Ubuntu package "nfs-common"
-# TODO: SUSE   package "nfs-client"
-
 package "mapr-nfs"
+
+if platform_family?("rhel")
+  package "nfs-utils"
+end
+
+if platform_family?("debian")
+  package "nfs-common"
+end
+
+if platform_family?("suse")
+  package "nfs-client"
+end
