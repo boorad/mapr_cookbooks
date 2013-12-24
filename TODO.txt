@@ -3,6 +3,8 @@
 - do nfs recipe todo for each platform
 - rpcbind started for NFS service?  Centos def... but Ubuntu as well?
 - rpcbind service start by default
+- rpcbind service restarts?  also restart warden
+- mapr_fstab mount point
 
 - .bashrc for install user and mapr user, not just root
 
