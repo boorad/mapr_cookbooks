@@ -20,7 +20,7 @@ def get_nodes_with_role_sp(role)
     nodes.reject(&:empty?).join(' ')
 end
 
-if platform?("redhat", "centos")
+if platform_family?("rhel")
   include_recipe "yum::epel"
 end
 

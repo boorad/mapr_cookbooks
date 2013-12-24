@@ -9,7 +9,7 @@
 version = "v#{node['mapr']['version']}"
 
 
-if platform?("redhat", "centos")
+if platform_family?("rhel")
 
   yum_repository "mapr_core" do
     url "#{node['mapr']['repo_url']}/#{version}/redhat"
@@ -21,7 +21,7 @@ if platform?("redhat", "centos")
 
 end
 
-if platform?("ubuntu")
+if platform_family?("debian")
 
   include_recipe "apt"
 
