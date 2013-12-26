@@ -43,3 +43,5 @@ default[:mapr][:ports] = [
                           2888,
                           3888
                          ]
+
+default[:mapr][:mapr_subnets] = ""

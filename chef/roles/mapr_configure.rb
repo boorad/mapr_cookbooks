@@ -6,6 +6,7 @@ run_list(
   "recipe[mapr::configure]",
   "recipe[mapr::disksetup]",
   "recipe[mapr::enable_services]"
+  "recipe[mapr::env]"
 )
 default_attributes(
 

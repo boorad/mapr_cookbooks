@@ -34,8 +34,10 @@ def phase_4():
 def test_connect():
     run("date")
 
+@parallel
 def test():
-    pass
+    copy_chef_bits()
+    chef_solo("recipe[mapr::env]")
 
 
 ##
