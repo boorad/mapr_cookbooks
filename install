@@ -7,7 +7,19 @@ DIR="$( cd "$( dirname "$0" )" && pwd )"
 #   TODO: assumes python-devel (CentOS)
 #   TODO: assumes gcc
 
-sudo pip install virtualenv
+# detect pip
+PIP=`which pip`
+if [ -z "$PIP"  -o  ! -x "$PIP" ] ; then
+    echo "MapR Installer requires python, python-devel, pip, & gcc"
+    exit 1
+fi
+
+# detect virtualenv
+VE=`which virtualenv`
+if [ -z "$VE"  -o  ! -x "$VE" ] ; then
+    sudo pip install virtualenv
+fi
+
 virtualenv python
 source $DIR/python/bin/activate
 pip install fabric
@@ -15,6 +27,11 @@ pip install fabric
 # run fabric commands
 cd "$DIR/fabric"
 HOSTS=`python manifests.py hosts`
-fab -H $HOSTS phase_1
-fab -H $HOSTS phase_2
-fab -H $HOSTS phase_3
+
+if [ -z $1 ] ; then
+    fab -H $HOSTS phase_1
+    fab -H $HOSTS phase_2
+    fab -H $HOSTS phase_3
+else
+    fab -H $HOSTS $1
+fi
