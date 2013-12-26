@@ -7,6 +7,7 @@ This repository contains a few different options for deploying MapR Hadoop clust
 
 * A user on each node, allowing ssh and sudo
 * Berkshelf Ruby gem installed on packaging machine
+  * In base folder of this repo, touch a file called 'DEV' to activate development mode, or remove file to deactivate development mode
 
 ##Process
 
