@@ -17,6 +17,10 @@ def generate():
         out.write(json.dumps(m))
         out.close()
 
+def get_ssh_auth():
+    c = get_json()
+    return c["auth"]["ssh"]
+
 def get_hosts():
     c = get_json()
     hosts = []

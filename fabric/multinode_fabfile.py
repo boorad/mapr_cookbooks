@@ -7,10 +7,6 @@ CHEF_DIR="%s/chef" % INSTALL_DIR
 COOKBOOK_DIR="%s/cookbooks" % CHEF_DIR
 MAPR_PACKAGE_URL="http://package.mapr.com/releases"
 
-PLATFORM = "redhat"
-
-env.use_ssh_config=True
-
 ##
 ## composite phase tasks
 ##
@@ -38,6 +34,15 @@ def test():
 ##
 ## supporting sub-tasks
 ##
+
+def auth():
+    env.use_ssh_config=True
+    auth = manifests.get_ssh_auth()
+    if auth["type"] == "key_file":
+        env.user = auth["user"]
+        env.key_filename = auth["key_file"]
+    if auth["type"] == "password":
+        env.user = auth["user"]
 
 def install_omnibus_chef():
     sudo("curl -L https://www.opscode.com/chef/install.sh | bash")
@@ -108,3 +113,6 @@ def chef_solo(runlist=None):
     with cd(CHEF_DIR):
         sudo("chef-solo -c %s/solo.rb -j %s/%s%s"
              % (CHEF_DIR, INSTALL_DIR, manifest, rl))
+
+# run auth function for all phases
+auth()
