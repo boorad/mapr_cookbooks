@@ -29,7 +29,7 @@ cp -R $DIR/chef/dep_cookbooks/* $CHEF/cookbooks
 
 mkdir -p $FABRIC
 
-cp $DIR/fabric/multinode_fabfile.py $FABRIC/fabfile.py
+cp $DIR/fabric/fabfile.py $FABRIC
 cp $DIR/fabric/manifests.py $FABRIC
 cp $DIR/fabric/cluster.json.example $FABRIC
 
