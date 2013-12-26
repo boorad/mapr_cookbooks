@@ -10,6 +10,7 @@ MAPR_PACKAGE_URL="http://package.mapr.com/releases"
 ##
 ## composite phase tasks
 ##
+@parallel
 def phase_1():
     install_omnibus_chef()
     make_mapr_install_chef_dir()
@@ -18,14 +19,20 @@ def phase_1():
     copy_chef_bits()
 #    create_local_repo()
 
+@parallel
 def phase_2():
     package_install()
 
+@parallel
 def phase_3():
     configure()
 
 def phase_4():
     start_services()
+
+@parallel
+def test_connect():
+    run("date")
 
 def test():
     pass
