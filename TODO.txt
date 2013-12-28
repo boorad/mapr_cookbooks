@@ -12,6 +12,4 @@
 
 - passwd on mapr user (only webserver?  or all nodes?)
 
-- integrate Tucker's prepare-mapr-chef.sh script
-
 - sshd_config ... add mapr to AllowGroups
