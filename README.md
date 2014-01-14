@@ -23,3 +23,21 @@ In the packaged folder (from the tarball above), edit cluster.json to suit your 
 ###Execute
 
     ./install
+
+## TODO
+
+* delete everything from this chef repo that fabric doesn't move over
+* generate new certificates each run
+* .bashrc for install user and mapr user, not just root
+* json parse check on cluster.json before executing anything fabric or manifests.py related.
+* start zk, wait for success, then start cldb (warden), wait for success, then start warden on other nodes
+* add 'fc' permissions to mapr user
+* install clush on installer node, with proper groups & sudo
+* passwd on mapr user (only webserver?  or all nodes?)
+* sshd_config ... add mapr to AllowGroups
+* one zk setup * should be single and not stand-alone, for easier migrations to multiple zks... but not an even number.
+* Metrics setup
+* finish off local package repository functionality * installer or other node holds all packages for other nodes to pull * bandwidth saver
+* disksetup * make idempotent
+* add nodes to existing cluster
+* Web UI
