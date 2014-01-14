@@ -35,9 +35,9 @@ In the packaged folder (from the tarball above), edit cluster.json to suit your 
 * install clush on installer node, with proper groups & sudo
 * passwd on mapr user (only webserver?  or all nodes?)
 * sshd_config ... add mapr to AllowGroups
-* one zk setup * should be single and not stand-alone, for easier migrations to multiple zks... but not an even number.
+* one zk setup - should be single and not stand-alone, for easier migrations to multiple zks... but not an even number.
 * Metrics setup
-* finish off local package repository functionality * installer or other node holds all packages for other nodes to pull * bandwidth saver
-* disksetup * make idempotent
+* finish off local package repository functionality - installer or other node holds all packages for other nodes to pull - bandwidth saver
+* disksetup - make idempotent
 * add nodes to existing cluster
 * Web UI
