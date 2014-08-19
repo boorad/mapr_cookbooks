@@ -14,6 +14,7 @@ default[:mapr][:home] = "/opt/mapr"
 default[:mapr][:clustername] = "my.cluster.com"
 default[:mapr][:version] = "3.0.2"
 default[:mapr][:repo_url] = "http://package.mapr.com/releases"
+default[:mapr][:repo_key_url] = "http://package.mapr.com/releases/pub/gnugpg.key"
 
 default[:mapr][:node][:disks] = ["/dev/sdb","/dev/sdc","/dev/sdd"]
 
