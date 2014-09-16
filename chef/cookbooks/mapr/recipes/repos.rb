@@ -29,12 +29,14 @@ if platform_family?("debian")
     uri "#{node['mapr']['repo_url']}/#{version}/#{node['platform']}"
     distribution "mapr"
     components ["optional"]
+    key node['mapr']['repo_key_url']
     notifies :run, resources(:execute => "apt-get update")
   end
 
   apt_repository "mapr_ecosystem" do
     uri "#{node['mapr']['repo_url']}/ecosystem/#{node['platform']}"
     components ["binary/"]
+    key node['mapr']['repo_key_url']
     notifies :run, resources(:execute => "apt-get update")
   end
 
