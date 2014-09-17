@@ -19,7 +19,7 @@ cp -R $DIR/chef/roles $CHEF
 cp $DIR/chef/solo.rb $CHEF
 
 cd "$DIR/chef/cookbooks/mapr"
-berks install --path $DIR/chef/dep_cookbooks
+berks vendor $DIR/chef/dep_cookbooks
 cp -R $DIR/chef/dep_cookbooks/* $CHEF/cookbooks
 
 

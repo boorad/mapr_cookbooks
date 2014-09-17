@@ -1,5 +1,5 @@
 # use Opscode's public cookbooks
-site :opscode
+source "https://supermarket.getchef.com"
 
 # use these cookbooks
 cookbook 'apt'
