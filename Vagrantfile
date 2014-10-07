@@ -6,6 +6,11 @@ require 'fileutils'
 require 'json'
 require 'manifests'
 
+require 'pp'
+
+logger = ::Log4r::Logger.new('mapr_cookbooks::Vagrantfile')
+logger.outputters << ::Log4r::Outputter.stdout
+
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
@@ -55,6 +60,22 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provider :vmware_fusion do |vb, override|
     override.vm.box_url = "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_ubuntu-13.10_chef-provisionerless.box"
   end
+
+  (1..$num_instances).each do |i|
+    ## Generate this hash outside the Vagrant `config.vm.define` blocks and loop below so it always contains ALL cluster nodes,
+    ## especially when vagrant is given a single node name
+    # Add nodes to attributes hash
+    $mapr_cluster_attributes['mapr']['nodes'].push( { "ip" => "172.17.9.#{i+100}", "host" => "mapr-%02d" % i, "fqdn" => "mapr-%02d.dev.vagrantbox.com" % i, "disks" => [ "/dev/mapper/vagrant--vg-root" ], "roles" => [ "mapr_data_node" ] } )
+
+    # Make first node a control node
+    $mapr_cluster_attributes['mapr']['nodes'][0]['roles'].unshift('mapr_control_node') unless $mapr_cluster_attributes['mapr']['nodes'][0]['roles'].include?('mapr_control_node')
+
+    # Generate a group listing of the nodes
+    $mapr_cluster_attributes['mapr']['groups'] = MapRManifests.groups($mapr_cluster_attributes['mapr']['nodes'])
+  end
+
+  # logger.warn( "Before defining VMs:\n\n" )
+  # pp $mapr_cluster_attributes
 
   (1..$num_instances).each do |i|
     config.vm.define vm_name = "mapr-%02d" % i do |config|
@@ -156,15 +177,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           }
         }
 
-        # Add nodes to attributes hash
-        $mapr_cluster_attributes['mapr']['nodes'].push( { "ip" => "172.17.9.#{i+100}", "host" => "mapr-%02d" % i, "fqdn" => "mapr-%02d.dev.vagrantbox.com" % i, "disks" => [ "/dev/mapper/vagrant--vg-root" ], "roles" => [ "mapr_data_node" ] } )
-
-        # Make first node a control node
-        $mapr_cluster_attributes['mapr']['nodes'][0]['roles'].unshift('mapr_control_node') unless $mapr_cluster_attributes['mapr']['nodes'][0]['roles'].include?('mapr_control_node')
-
-        # Generate a group listing of the nodes
-        $mapr_cluster_attributes['mapr']['groups'] = MapRManifests.groups($mapr_cluster_attributes['mapr']['nodes'])
-
+        ## These attributes will be set on a per-node basis, so the recipes set the appropriate hostname per-node
         # Add node attributes to set hostname, ip, fqdn for recipes: mapr::disksetup, mapr::hostname
         $mapr_cluster_attributes['mapr']['node'] = {}
         $mapr_cluster_attributes['mapr']['node']['host'] = vm_name
@@ -176,7 +189,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         ## So the code in the recipe expects us to generate this and put it in attributes.
         ## The orchestration code for fabric in 'manifests.py' handles generating this, but we don't have fabric usable in 
         ## the Vagrantfile yet, so we must re-implement it in 'manifests.rb'.  This should be D.R.Y.-ed up, and maybe rethought/refactored
-        # require 'pp'
+        # logger.warn( "Inside Vagrant config.vm.define #{vm_name} block:\n\n" )
         # pp $mapr_cluster_attributes
 
         chef.json.merge!( $mapr_cluster_attributes )
