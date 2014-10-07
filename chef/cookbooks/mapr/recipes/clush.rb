@@ -24,7 +24,9 @@ if platform_family?("rhel")
   include_recipe "yum::epel"
 end
 
-package "clustershell"
+package "clustershell" do
+  options node[:mapr][:pkg_opts] unless node[:mapr][:pkg_opts].nil?
+end
 
 all = get_nodes_with_role_sp("all")
 cldb = get_nodes_with_role_sp("cldb")

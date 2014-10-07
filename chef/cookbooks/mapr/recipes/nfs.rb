@@ -6,7 +6,9 @@
 #
 
 # MapR package
-package "mapr-nfs"
+package "mapr-nfs" do
+  options node[:mapr][:pkg_opts] unless node[:mapr][:pkg_opts].nil?
+end
 
 
 # supporting packages
