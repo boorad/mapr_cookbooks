@@ -165,6 +165,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # Generate a group listing of the nodes
         $mapr_cluster_attributes['mapr']['groups'] = MapRManifests.groups($mapr_cluster_attributes['mapr']['nodes'])
 
+        # Add node attributes to set hostname, ip, fqdn for recipes: mapr::disksetup, mapr::hostname
+        $mapr_cluster_attributes['mapr']['node'] = {}
+        $mapr_cluster_attributes['mapr']['node']['host'] = vm_name
+        $mapr_cluster_attributes['mapr']['node']['fqdn'] = "mapr-%02d.dev.vagrantbox.com" % i
+        $mapr_cluster_attributes['mapr']['node']['ip'] = ip
+
         ## This definitely needs to be fixed to be [D.R.Y.](https://en.wikipedia.org/wiki/Don't_repeat_yourself)!
         ## The mapr::clush recipe expects a hash of role-grouped hosts in the MapR cluster categorized by services they run
         ## So the code in the recipe expects us to generate this and put it in attributes.
