@@ -7,4 +7,6 @@
 
 # TODO: ajaxterm needed?
 
-package "mapr-webserver"
+package "mapr-webserver" do
+  options node[:mapr][:pkg_opts] unless node[:mapr][:pkg_opts].nil?
+end

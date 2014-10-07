@@ -15,6 +15,8 @@ default[:mapr][:clustername] = "my.cluster.com"
 default[:mapr][:version] = "3.0.2"
 default[:mapr][:repo_url] = "http://package.mapr.com/releases"
 default[:mapr][:repo_key_url] = "http://package.mapr.com/releases/pub/gnugpg.key"
+# Workaround for "WARNING: The following packages cannot be authenticated!" error
+default[:mapr][:pkg_opts] = "--force-yes" if platform_family?('debian')
 
 default[:mapr][:node][:disks] = ["/dev/sdb","/dev/sdc","/dev/sdd"]
 
